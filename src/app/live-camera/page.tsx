@@ -1,0 +1,100 @@
+"use client";
+
+import Image from "next/image";
+import { AppShell } from "@/components/layout/AppShell";
+import { GlassCard } from "@/components/ui/GlassCard";
+import { FadeIn } from "@/components/motion/FadeIn";
+import { CameraPlayer } from "@/components/camera/CameraPlayer";
+import { CameraStatusBadge } from "@/components/camera/CameraStatusBadge";
+import { useCameraSource } from "@/lib/camera/useCameraSource";
+import { birdhouseCameraConfig } from "@/lib/camera/createCameraSource";
+import { useMotionEvents } from "@/lib/query/hooks";
+import { useAppStore } from "@/lib/store/useAppStore";
+import { DownloadIcon, ShareIcon, FeatherIcon } from "@/components/icons";
+import { LoadingFeather } from "@/components/motion/LoadingFeather";
+
+export default function LiveCameraPage() {
+  const { status, captureSnapshot } = useCameraSource(birdhouseCameraConfig);
+  const pushToast = useAppStore((s) => s.pushToast);
+  const { data: motionEvents, isLoading } = useMotionEvents();
+
+  const handleSnapshot = async () => {
+    await captureSnapshot();
+    pushToast("Snapshot saved to your gallery.");
+  };
+
+  return (
+    <AppShell title="Live Camera" subtitle="Watching your birdhouse">
+      <div className="space-y-6">
+        <FadeIn>
+          <GlassCard padding="sm">
+            <CameraPlayer config={birdhouseCameraConfig} variant="full" />
+            <div className="flex items-center justify-between px-1 pt-3">
+              <div className="flex items-center gap-2">
+                <CameraStatusBadge status={status} />
+                <span className="text-xs text-[#8A8F94]">Wyze Cam V3 · Birdhouse</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleSnapshot}
+                  aria-label="Capture snapshot"
+                  className="glass-card flex h-9 w-9 items-center justify-center"
+                >
+                  <DownloadIcon size={16} wash="none" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => pushToast("Sharing is coming soon.")}
+                  aria-label="Share live view"
+                  className="glass-card flex h-9 w-9 items-center justify-center"
+                >
+                  <ShareIcon size={16} wash="none" />
+                </button>
+              </div>
+            </div>
+          </GlassCard>
+        </FadeIn>
+
+        <FadeIn delay={0.08}>
+          <h2 className="font-heading mb-3 px-1 text-lg font-medium text-[#4F545A]">
+            Motion Events
+          </h2>
+          {isLoading ? (
+            <LoadingFeather />
+          ) : motionEvents && motionEvents.length > 0 ? (
+            <ul className="space-y-2">
+              {motionEvents.map((event) => (
+                <li key={event.id}>
+                  <GlassCard padding="sm" className="flex items-center gap-3">
+                    <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl">
+                      <Image src={event.thumbnailSrc} alt="" fill className="object-cover" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium text-[#4F545A]">
+                        {event.label}
+                      </span>
+                      <span className="block text-xs text-[#8A8F94]">
+                        {new Date(event.timestamp).toLocaleTimeString([], {
+                          hour: "numeric",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </span>
+                  </GlassCard>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <GlassCard padding="lg" className="flex flex-col items-center gap-2 text-center">
+              <FeatherIcon size={28} wash="dustyBlue" />
+              <p className="text-sm text-[#8A8F94]">
+                No motion yet today. The nest is quiet.
+              </p>
+            </GlassCard>
+          )}
+        </FadeIn>
+      </div>
+    </AppShell>
+  );
+}

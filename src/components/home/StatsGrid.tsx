@@ -1,0 +1,40 @@
+"use client";
+
+import type { ComponentType } from "react";
+import { GlassCard } from "@/components/ui/GlassCard";
+import { FadeIn } from "@/components/motion/FadeIn";
+import { LeafIcon, EggIcon, FlowerIcon, FavoriteIcon, type IconProps } from "@/components/icons";
+import { useStats } from "@/lib/query/hooks";
+
+const items: {
+  key: string;
+  label: string;
+  Icon: ComponentType<IconProps>;
+  wash: IconProps["wash"];
+  value: (s: ReturnType<typeof useStats>["data"]) => number | undefined;
+}[] = [
+  { key: "birds", label: "Birds Today", Icon: LeafIcon, wash: "sage", value: (s) => s?.birdsToday },
+  { key: "eggs", label: "Eggs Laid", Icon: EggIcon, wash: "dustyBlue", value: (s) => s?.eggsLaid },
+  { key: "visits", label: "Visits Today", Icon: FlowerIcon, wash: "lavender", value: (s) => s?.visitsToday },
+  { key: "total", label: "Total Visits", Icon: FavoriteIcon, wash: "blush", value: (s) => s?.totalVisits },
+];
+
+export function StatsGrid() {
+  const { data: stats, isLoading } = useStats();
+
+  return (
+    <FadeIn delay={0.15}>
+      <GlassCard padding="sm" className="grid grid-cols-4 gap-1">
+        {items.map(({ key, label, Icon, wash, value }) => (
+          <div key={key} className="flex flex-col items-center gap-1.5 py-2 text-center">
+            <Icon size={22} wash={wash} />
+            <span className="font-heading text-lg font-medium leading-none text-[#4F545A]">
+              {isLoading ? "–" : value(stats)}
+            </span>
+            <span className="text-[10px] leading-tight text-[#8A8F94]">{label}</span>
+          </div>
+        ))}
+      </GlassCard>
+    </FadeIn>
+  );
+}
