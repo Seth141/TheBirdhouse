@@ -40,7 +40,7 @@ export function MenuDrawer({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.98 }}
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            className="glass-card absolute right-0 top-full z-40 mt-2 w-56 overflow-hidden p-2"
+            className="glass-card absolute left-1/2 top-full z-40 -mt-px w-56 -translate-x-1/2 overflow-hidden rounded-t-none p-2"
           >
             <nav aria-label="Main menu">
               {links.map(({ href, label, Icon }) => (
