@@ -7,6 +7,7 @@ import { FadeIn } from "@/components/motion/FadeIn";
 import { LiveCameraIcon, ChevronRightIcon } from "@/components/icons";
 import { useCameraSource } from "@/lib/camera/useCameraSource";
 import { birdhouseCameraConfig } from "@/lib/camera/createCameraSource";
+import { playLiveCamSound, warmSoftSounds } from "@/lib/audio/softSounds";
 import { cn } from "@/lib/utils/cn";
 
 export function LiveCameraCard() {
@@ -15,7 +16,15 @@ export function LiveCameraCard() {
 
   return (
     <FadeIn delay={0.1}>
-      <Link href="/live-camera" aria-label="Open live camera, full screen">
+      <Link
+        href="/live-camera"
+        aria-label="Open live camera, full screen"
+        onPointerEnter={() => warmSoftSounds()}
+        onPointerDown={() => {
+          warmSoftSounds();
+          playLiveCamSound();
+        }}
+      >
         <GlassCard
           padding="sm"
           className="flex items-center gap-3 transition-transform active:scale-[0.99]"
