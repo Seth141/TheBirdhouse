@@ -24,7 +24,7 @@ export const colors = {
 } as const;
 
 export const gradients = {
-  sky: `linear-gradient(180deg, ${colors.sky} 0%, ${colors.morningBlue} 38%, ${colors.warmWhite} 78%, ${colors.cream} 100%)`,
+  sky: `linear-gradient(180deg, ${colors.sky} 0%, #E3EBE6 34%, #DDE7DC 62%, ${colors.cream} 100%)`,
   glass:
     "linear-gradient(135deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.18) 100%)",
   vignette:
