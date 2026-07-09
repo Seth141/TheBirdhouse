@@ -248,77 +248,93 @@ export function PasswordGate({ children }: { children: ReactNode }) {
 
             <motion.div
               className="relative z-10 w-full max-w-[340px]"
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 1 }}
               exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
             >
               <div className="mb-10 flex flex-col items-center text-center">
-                <h1 className="font-heading text-[2.35rem] leading-[1.08] font-medium text-[#4F545A]">
+                <motion.h1
+                  className="font-heading text-[2.35rem] leading-[1.08] font-medium text-[#4F545A]"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.9, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                >
                   Welcome to
                   <br />
                   the Birdhouse
-                </h1>
-                <p className="mt-4 text-sm leading-relaxed text-[#8A8F94]">
+                </motion.h1>
+                <motion.p
+                  className="mt-4 text-sm leading-relaxed text-[#8A8F94]"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.9, delay: 1.1, ease: [0.22, 1, 0.36, 1] }}
+                >
                   Step Inside our Quiet Space
-                </p>
+                </motion.p>
               </div>
 
-              <motion.form
-                key={shakeKey}
-                onSubmit={handleSubmit}
+              <motion.div
                 className="space-y-3"
-                initial={error ? { x: 0 } : false}
-                animate={
-                  error
-                    ? { x: [0, -10, 10, -8, 8, -4, 4, 0] }
-                    : { x: 0 }
-                }
-                transition={{ duration: 0.45 }}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.9, delay: 2.0, ease: [0.22, 1, 0.36, 1] }}
               >
-                <label className="relative block">
-                  <span className="sr-only">Secret password</span>
-                  <input
-                    type="password"
-                    name="password"
-                    autoComplete="off"
-                    autoFocus
-                    value={password}
-                    onChange={(event) => {
-                      setPassword(event.target.value);
-                      if (error) setError(false);
-                    }}
-                    className="w-full rounded-full border border-white/70 bg-white/50 px-5 py-3.5 text-left text-base text-[#4F545A] caret-[#4F545A] shadow-[0_10px_30px_rgba(80,80,80,0.06)] outline-none backdrop-blur-md transition-[background-color,border-color,box-shadow] focus:border-[#C4B8DE]/90 focus:bg-white/70 focus:shadow-[0_12px_36px_rgba(80,80,80,0.08)]"
-                    aria-invalid={error}
-                    aria-describedby={error ? "password-error" : undefined}
-                  />
-                  {!password && (
-                    <span
-                      aria-hidden="true"
-                      className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center text-base text-[#8A8F94]"
-                    >
-                      Secret password
-                    </span>
-                  )}
-                </label>
-
-                {error && (
-                  <p
-                    id="password-error"
-                    className="text-center text-sm text-[#8A8F94]"
-                    role="alert"
-                  >
-                    That isn&apos;t quite right. Try again.
-                  </p>
-                )}
-
-                <button
-                  type="submit"
-                  className="w-full rounded-full border border-[#C5D4DF] bg-[#C5D6E4] px-5 py-3.5 text-sm font-medium tracking-wide text-[#4F5A62] shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_10px_28px_rgba(100,130,160,0.32)] transition-[background-color,box-shadow,transform] hover:bg-[#B9CBD8] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_12px_32px_rgba(100,130,160,0.38)] active:scale-[0.985]"
+                <motion.form
+                  key={shakeKey}
+                  onSubmit={handleSubmit}
+                  className="space-y-3"
+                  initial={error ? { x: 0 } : false}
+                  animate={
+                    error
+                      ? { x: [0, -10, 10, -8, 8, -4, 4, 0] }
+                      : { x: 0 }
+                  }
+                  transition={{ duration: 0.45 }}
                 >
-                  Open the door
-                </button>
-              </motion.form>
+                  <label className="relative block">
+                    <span className="sr-only">Secret password</span>
+                    <input
+                      type="password"
+                      name="password"
+                      autoComplete="off"
+                      autoFocus
+                      value={password}
+                      onChange={(event) => {
+                        setPassword(event.target.value);
+                        if (error) setError(false);
+                      }}
+                      className="w-full rounded-full border border-[#C5D4DF]/70 bg-white/50 px-5 py-3.5 text-left text-base text-[#4F545A] caret-[#4F545A] shadow-[0_10px_28px_rgba(100,130,160,0.22)] outline-none backdrop-blur-md transition-[background-color,box-shadow] focus:border-[#C5D4DF] focus:bg-white/70 focus:shadow-[0_12px_32px_rgba(100,130,160,0.32)]"
+                      aria-invalid={error}
+                      aria-describedby={error ? "password-error" : undefined}
+                    />
+                    {!password && (
+                      <span
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center text-base text-[#8A8F94]"
+                      >
+                        Secret password
+                      </span>
+                    )}
+                  </label>
+
+                  {error && (
+                    <p
+                      id="password-error"
+                      className="text-center text-sm text-[#8A8F94]"
+                      role="alert"
+                    >
+                      That isn&apos;t quite right. Try again.
+                    </p>
+                  )}
+
+                  <button
+                    type="submit"
+                    className="w-full rounded-full border border-[#C5D4DF] bg-[#C5D6E4] px-5 py-3.5 text-sm font-medium tracking-wide text-[#4F5A62] shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_10px_28px_rgba(100,130,160,0.32)] transition-[background-color,box-shadow,transform] hover:bg-[#B9CBD8] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_12px_32px_rgba(100,130,160,0.38)] active:scale-[0.985]"
+                  >
+                    Open the door
+                  </button>
+                </motion.form>
+              </motion.div>
             </motion.div>
           </motion.div>
         )}
