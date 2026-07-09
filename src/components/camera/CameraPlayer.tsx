@@ -28,7 +28,9 @@ export function CameraPlayer({ config, variant = "card", className }: CameraPlay
     <div
       className={cn(
         "relative overflow-hidden rounded-[22px] bg-[#DCE6EC]",
-        variant === "card" ? "aspect-[4/3]" : "aspect-[3/4]",
+        variant === "card"
+          ? "aspect-[4/3]"
+          : "aspect-[3/4] lg:aspect-video",
         className
       )}
     >

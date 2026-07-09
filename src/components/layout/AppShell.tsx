@@ -18,7 +18,9 @@ export function AppShell({
   return (
     <>
       <Header title={title} subtitle={subtitle} variant={headerVariant} />
-      <main className="flex-1 px-5 pb-8 pt-5">{children}</main>
+      <main className="flex-1 px-5 pb-10 pt-5 lg:px-0 lg:pb-14 lg:pt-6">
+        {children}
+      </main>
     </>
   );
 }

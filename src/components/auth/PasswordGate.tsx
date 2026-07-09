@@ -374,7 +374,7 @@ export function PasswordGate({ children }: { children: ReactNode }) {
           <motion.div
             key="password-gate"
             ref={gateRef}
-            className="fixed inset-0 z-[100] flex touch-manipulation items-center justify-center px-6"
+            className="fixed inset-0 z-[100] flex touch-manipulation items-center justify-center px-6 lg:px-8"
             style={{ WebkitTapHighlightColor: "transparent" }}
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -392,14 +392,14 @@ export function PasswordGate({ children }: { children: ReactNode }) {
             <Butterflies attract={attract} />
 
             <motion.div
-              className="pointer-events-none relative z-10 w-full max-w-[340px]"
+              className="pointer-events-none relative z-10 w-full max-w-[340px] lg:max-w-[420px]"
               initial={{ opacity: 1 }}
               exit={{ opacity: 0, y: -12 }}
               transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
             >
-              <div className="mb-10 flex flex-col items-center text-center">
+              <div className="mb-10 flex flex-col items-center text-center lg:mb-12">
                 <motion.h1
-                  className="font-heading text-[2.35rem] leading-[1.08] font-medium text-[#4F545A]"
+                  className="font-heading text-[2.35rem] leading-[1.08] font-medium text-[#4F545A] lg:text-[3.25rem] lg:leading-[1.02]"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.9, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
@@ -409,7 +409,7 @@ export function PasswordGate({ children }: { children: ReactNode }) {
                   the Birdhouse
                 </motion.h1>
                 <motion.p
-                  className="mt-4 text-sm leading-relaxed text-[#8A8F94]"
+                  className="mt-4 text-sm leading-relaxed text-[#8A8F94] lg:mt-5 lg:text-base"
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.9, delay: 1.1, ease: [0.22, 1, 0.36, 1] }}
@@ -419,7 +419,7 @@ export function PasswordGate({ children }: { children: ReactNode }) {
               </div>
 
               <motion.div
-                className="pointer-events-auto space-y-3"
+                className="pointer-events-auto space-y-3 lg:space-y-4"
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.9, delay: 2.0, ease: [0.22, 1, 0.36, 1] }}

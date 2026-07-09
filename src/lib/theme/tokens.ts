@@ -106,6 +106,7 @@ export const iconSizes = {
 
 export const layout = {
   maxWidth: "480px",
+  desktopMaxWidth: "1120px",
   touchTarget: "44px",
   navHeight: "78px",
   headerHeight: "72px",

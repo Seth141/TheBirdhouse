@@ -24,14 +24,22 @@ export function StatsGrid() {
 
   return (
     <FadeIn delay={0.15}>
-      <GlassCard padding="sm" className="grid grid-cols-4 gap-1">
+      <GlassCard
+        padding="sm"
+        className="grid grid-cols-4 gap-1 lg:grid-cols-2 lg:gap-3 lg:p-5"
+      >
         {items.map(({ key, label, Icon, wash, value }) => (
-          <div key={key} className="flex flex-col items-center gap-1.5 py-2 text-center">
-            <Icon size={22} wash={wash} />
-            <span className="font-heading text-lg font-medium leading-none text-[#4F545A]">
+          <div
+            key={key}
+            className="flex flex-col items-center gap-1.5 py-2 text-center lg:items-start lg:rounded-[22px] lg:bg-white/35 lg:px-4 lg:py-4 lg:text-left"
+          >
+            <Icon size={22} wash={wash} className="lg:mb-1" />
+            <span className="font-heading text-lg font-medium leading-none text-[#4F545A] lg:text-[1.75rem]">
               {isLoading ? "–" : value(stats)}
             </span>
-            <span className="text-[10px] leading-tight text-[#8A8F94]">{label}</span>
+            <span className="text-[10px] leading-tight text-[#8A8F94] lg:text-xs">
+              {label}
+            </span>
           </div>
         ))}
       </GlassCard>

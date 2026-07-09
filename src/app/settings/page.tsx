@@ -52,12 +52,12 @@ export default function SettingsPage() {
 
   return (
     <AppShell title="Settings" subtitle="Tend to your birdhouse experience">
-      <div className="space-y-5">
+      <div className="space-y-5 lg:mx-auto lg:grid lg:max-w-4xl lg:grid-cols-2 lg:gap-6 lg:space-y-0">
         <FadeIn>
-          <h2 className="mb-2 px-1 text-xs font-medium uppercase tracking-wider text-[#8A8F94]">
+          <h2 className="mb-2 px-1 text-xs font-medium uppercase tracking-wider text-[#8A8F94] lg:text-[0.7rem]">
             Camera
           </h2>
-          <GlassCard padding="sm" className="divide-y divide-white/40">
+          <GlassCard padding="sm" className="divide-y divide-white/40 lg:p-5">
             <SettingsRow
               icon={<CameraIcon size={18} wash="none" />}
               title="Birdhouse Cam"
@@ -68,10 +68,10 @@ export default function SettingsPage() {
         </FadeIn>
 
         <FadeIn delay={0.05}>
-          <h2 className="mb-2 px-1 text-xs font-medium uppercase tracking-wider text-[#8A8F94]">
+          <h2 className="mb-2 px-1 text-xs font-medium uppercase tracking-wider text-[#8A8F94] lg:text-[0.7rem]">
             Notifications
           </h2>
-          <GlassCard padding="sm" className="divide-y divide-white/40">
+          <GlassCard padding="sm" className="divide-y divide-white/40 lg:p-5">
             <SettingsRow
               icon={<NotificationIcon size={18} wash="none" />}
               title="Motion alerts"
@@ -94,10 +94,10 @@ export default function SettingsPage() {
         </FadeIn>
 
         <FadeIn delay={0.1}>
-          <h2 className="mb-2 px-1 text-xs font-medium uppercase tracking-wider text-[#8A8F94]">
+          <h2 className="mb-2 px-1 text-xs font-medium uppercase tracking-wider text-[#8A8F94] lg:text-[0.7rem]">
             Accessibility
           </h2>
-          <GlassCard padding="sm" className="divide-y divide-white/40">
+          <GlassCard padding="sm" className="divide-y divide-white/40 lg:p-5">
             <SettingsRow
               icon={<BirdhouseIcon size={18} wash="none" />}
               title="Reduce motion"
@@ -108,11 +108,13 @@ export default function SettingsPage() {
         </FadeIn>
 
         <FadeIn delay={0.15}>
-          <GlassCard padding="lg" className="text-center">
-            <p className="font-heading text-base font-medium text-[#4F545A]">
+          <GlassCard padding="lg" className="text-center lg:flex lg:h-full lg:flex-col lg:items-center lg:justify-center lg:p-8">
+            <p className="font-heading text-base font-medium text-[#4F545A] lg:text-xl">
               Sara&apos;s Birdhouse
             </p>
-            <p className="mt-1 text-xs text-[#8A8F94]">Version 1.0 · Made with quiet care</p>
+            <p className="mt-1 text-xs text-[#8A8F94] lg:mt-2 lg:text-sm">
+              Version 1.0 · Made with quiet care
+            </p>
           </GlassCard>
         </FadeIn>
       </div>

@@ -25,21 +25,23 @@ export default function LiveCameraPage() {
 
   return (
     <AppShell title="Live Camera" subtitle="Watching your birdhouse">
-      <div className="space-y-6">
+      <div className="space-y-6 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-8 lg:space-y-0 xl:grid-cols-[minmax(0,1fr)_340px] xl:gap-10">
         <FadeIn>
-          <GlassCard padding="sm">
+          <GlassCard padding="sm" className="lg:p-4">
             <CameraPlayer config={birdhouseCameraConfig} variant="full" />
-            <div className="flex items-center justify-between px-1 pt-3">
+            <div className="flex items-center justify-between px-1 pt-3 lg:pt-4">
               <div className="flex items-center gap-2">
                 <CameraStatusBadge status={status} />
-                <span className="text-xs text-[#8A8F94]">Wyze Cam V3 · Birdhouse</span>
+                <span className="text-xs text-[#8A8F94] lg:text-sm">
+                  Wyze Cam V3 · Birdhouse
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={handleSnapshot}
                   aria-label="Capture snapshot"
-                  className="glass-card flex h-9 w-9 items-center justify-center"
+                  className="glass-card flex h-9 w-9 items-center justify-center lg:h-10 lg:w-10"
                 >
                   <DownloadIcon size={16} wash="none" />
                 </button>
@@ -47,7 +49,7 @@ export default function LiveCameraPage() {
                   type="button"
                   onClick={() => pushToast("Sharing is coming soon.")}
                   aria-label="Share live view"
-                  className="glass-card flex h-9 w-9 items-center justify-center"
+                  className="glass-card flex h-9 w-9 items-center justify-center lg:h-10 lg:w-10"
                 >
                   <ShareIcon size={16} wash="none" />
                 </button>
@@ -57,24 +59,27 @@ export default function LiveCameraPage() {
         </FadeIn>
 
         <FadeIn delay={0.08}>
-          <h2 className="font-heading mb-3 px-1 text-lg font-medium text-[#4F545A]">
+          <h2 className="font-heading mb-3 px-1 text-lg font-medium text-[#4F545A] lg:mb-4 lg:text-2xl">
             Motion Events
           </h2>
           {isLoading ? (
             <LoadingFeather />
           ) : motionEvents && motionEvents.length > 0 ? (
-            <ul className="space-y-2">
+            <ul className="space-y-2 lg:space-y-3">
               {motionEvents.map((event) => (
                 <li key={event.id}>
-                  <GlassCard padding="sm" className="flex items-center gap-3">
-                    <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl">
+                  <GlassCard
+                    padding="sm"
+                    className="flex items-center gap-3 lg:gap-4 lg:p-4"
+                  >
+                    <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl lg:h-16 lg:w-16 lg:rounded-2xl">
                       <Image src={event.thumbnailSrc} alt="" fill className="object-cover" />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium text-[#4F545A]">
+                      <span className="block truncate text-sm font-medium text-[#4F545A] lg:text-base">
                         {event.label}
                       </span>
-                      <span className="block text-xs text-[#8A8F94]">
+                      <span className="block text-xs text-[#8A8F94] lg:mt-0.5 lg:text-sm">
                         {new Date(event.timestamp).toLocaleTimeString([], {
                           hour: "numeric",
                           minute: "2-digit",
@@ -86,9 +91,12 @@ export default function LiveCameraPage() {
               ))}
             </ul>
           ) : (
-            <GlassCard padding="lg" className="flex flex-col items-center gap-2 text-center">
+            <GlassCard
+              padding="lg"
+              className="flex flex-col items-center gap-2 text-center lg:py-12"
+            >
               <FeatherIcon size={28} wash="dustyBlue" />
-              <p className="text-sm text-[#8A8F94]">
+              <p className="text-sm text-[#8A8F94] lg:text-base">
                 No motion yet today. The nest is quiet.
               </p>
             </GlassCard>

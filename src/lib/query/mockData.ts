@@ -86,6 +86,50 @@ export const mockTip: NatureTip = {
   body: "Early mornings are the best time to see new visitors!",
 };
 
+export interface WeeklyVisit {
+  day: string;
+  visits: number;
+}
+
+/** Soft weekly rhythm for desktop insight charts. */
+export const mockWeeklyVisits: WeeklyVisit[] = [
+  { day: "Mon", visits: 3 },
+  { day: "Tue", visits: 5 },
+  { day: "Wed", visits: 2 },
+  { day: "Thu", visits: 7 },
+  { day: "Fri", visits: 4 },
+  { day: "Sat", visits: 8 },
+  { day: "Sun", visits: 5 },
+];
+
+export interface HourlyVisit {
+  hour: string;
+  visits: number;
+}
+
+export const mockHourlyVisits: HourlyVisit[] = [
+  { hour: "6a", visits: 2 },
+  { hour: "8a", visits: 6 },
+  { hour: "10a", visits: 4 },
+  { hour: "12p", visits: 3 },
+  { hour: "2p", visits: 2 },
+  { hour: "4p", visits: 5 },
+  { hour: "6p", visits: 3 },
+];
+
+export interface VisitorShare {
+  label: string;
+  value: number;
+  color: string;
+}
+
+export const mockVisitorShare: VisitorShare[] = [
+  { label: "Bluebirds", value: 42, color: "#B9CBD8" },
+  { label: "Sparrows", value: 28, color: "#D6E1D5" },
+  { label: "Finches", value: 18, color: "#DCD6E8" },
+  { label: "Other", value: 12, color: "#EFD9DD" },
+];
+
 export interface AppNotification {
   id: string;
   title: string;

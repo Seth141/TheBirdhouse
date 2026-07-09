@@ -59,7 +59,7 @@ export default function RootLayout({
           <PasswordGate>
             <div className="relative min-h-dvh w-full overflow-x-hidden">
               <SkyBackground />
-              <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-[480px] flex-col">
+              <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-[480px] flex-col lg:max-w-[1120px] lg:px-8 xl:max-w-[1240px] xl:px-10">
                 {children}
               </div>
             </div>

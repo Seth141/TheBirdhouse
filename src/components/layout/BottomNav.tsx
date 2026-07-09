@@ -59,7 +59,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Primary"
-      className="sticky bottom-0 z-30 mx-auto w-full px-5 pb-6 pt-2"
+      className="sticky bottom-0 z-30 mx-auto w-full px-5 pb-6 pt-2 lg:px-6 lg:pb-7"
     >
       <div className="glass-card relative flex items-end justify-between px-2 py-1">
         {tabs.map(renderTab)}
