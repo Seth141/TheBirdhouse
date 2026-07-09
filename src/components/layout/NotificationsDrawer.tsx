@@ -38,18 +38,20 @@ export function NotificationsDrawer({
       {open && (
         <>
           <motion.div
-            className="fixed inset-0 z-30"
+            className="fixed inset-0 z-40 bg-[#EAF3F8]/20 backdrop-blur-[4px]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
             onClick={onClose}
+            aria-hidden="true"
           />
           <motion.div
-            initial={{ opacity: 0, y: -10, scale: 0.98 }}
+            initial={{ opacity: 0, y: 12, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.98 }}
+            exit={{ opacity: 0, y: 8, scale: 0.98 }}
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            className="glass-card absolute left-1/2 top-full z-40 -mt-px w-[min(18rem,calc(100%-0.5rem))] -translate-x-1/2 overflow-hidden rounded-t-none p-3"
+            className="glass-card fixed top-1/2 left-1/2 z-50 w-[min(18rem,calc(100vw-2.5rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden p-3"
             role="dialog"
             aria-label="Notifications"
           >
@@ -83,7 +85,7 @@ export function NotificationsDrawer({
                 </p>
               </div>
             ) : (
-              <ul className="flex max-h-80 flex-col gap-1 overflow-y-auto no-scrollbar">
+              <ul className="flex max-h-[min(20rem,55vh)] flex-col gap-1 overflow-y-auto no-scrollbar">
                 {visible.map((n) => {
                   const isRead = readIds.includes(n.id);
                   return (
