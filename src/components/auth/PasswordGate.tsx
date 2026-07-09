@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type PointerEvent, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -17,69 +17,78 @@ const BUTTERFLIES = [
     wing: "#C4B8DE",
     accent: "#A89BC8",
     size: 34,
-    left: "18%",
-    bottom: "14%",
+    homeX: 0.18,
+    homeY: 0.86,
     duration: 18,
     delay: 0,
     flap: 0.72,
     x: [0, 22, 48, 68, 58, 30, 0, -18, -36, -22, 0],
     y: [0, -10, -6, -20, -14, -8, -16, -10, -22, -12, 0],
     rotate: [4, 10, 14, 8, -2, -8, -12, -6, 2, 6, 4],
+    gather: { x: -28, y: -18 },
   },
   {
     id: "b",
     wing: "#B8A8D4",
     accent: "#9A88C0",
     size: 28,
-    left: "52%",
-    bottom: "8%",
+    homeX: 0.52,
+    homeY: 0.92,
     duration: 21,
     delay: 1.4,
     flap: 0.8,
     x: [0, -20, -42, -58, -40, -12, 10, 36, 52, 24, 0],
     y: [0, -8, -18, -12, -24, -14, -6, -16, -10, -20, 0],
     rotate: [-4, -10, -14, -6, 2, 8, 12, 6, -2, -6, -4],
+    gather: { x: 18, y: -26 },
   },
   {
     id: "c",
     wing: "#D0C4E6",
     accent: "#B0A0D0",
     size: 30,
-    left: "72%",
-    bottom: "16%",
+    homeX: 0.74,
+    homeY: 0.84,
     duration: 19,
     delay: 0.6,
     flap: 0.68,
     x: [0, -28, -54, -72, -50, -18, 8, 28, 12, -8, 0],
     y: [0, -14, -8, -24, -18, -10, -20, -12, -6, -16, 0],
     rotate: [-6, -12, -16, -8, 0, 8, 12, 4, -4, -2, -6],
+    gather: { x: 30, y: 12 },
   },
   {
     id: "d",
     wing: "#B4A4D0",
     accent: "#9484BC",
     size: 24,
-    left: "30%",
-    bottom: "6%",
+    homeX: 0.3,
+    homeY: 0.94,
     duration: 23,
     delay: 2.2,
     flap: 0.76,
     x: [0, 16, 38, 50, 34, 8, -14, -40, -28, -6, 0],
     y: [0, -6, -14, -8, -18, -12, -4, -16, -10, -20, 0],
     rotate: [2, 8, 12, 4, -4, -10, -8, 0, 6, 4, 2],
+    gather: { x: -12, y: 22 },
   },
 ] as const;
+
+type AttractPoint = { x: number; y: number; id: number };
+type FlightMode = "idle" | "attracted" | "returning";
 
 function Butterfly({
   wing,
   accent,
   size,
   flap,
+  busy,
 }: {
   wing: string;
   accent: string;
   size: number;
   flap: number;
+  busy: boolean;
 }) {
   return (
     <svg
@@ -94,7 +103,7 @@ function Butterfly({
         style={{ transformOrigin: "16px 16px" }}
         animate={{ scaleX: [1, 0.5, 1] }}
         transition={{
-          duration: flap,
+          duration: busy ? flap * 0.55 : flap,
           repeat: Infinity,
           ease: "easeInOut",
         }}
@@ -121,38 +130,151 @@ function Butterfly({
   );
 }
 
-function Butterflies() {
+function Butterflies({
+  attract,
+}: {
+  attract: AttractPoint | null;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ w: 0, h: 0 });
+  const [mode, setMode] = useState<FlightMode>("idle");
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const update = () => {
+      const rect = el.getBoundingClientRect();
+      setSize({ w: rect.width, h: rect.height });
+    };
+
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!attract) return;
+
+    setMode("attracted");
+    const returnTimer = window.setTimeout(() => {
+      setMode("returning");
+    }, 3200);
+
+    return () => window.clearTimeout(returnTimer);
+  }, [attract?.id]);
+
+  useEffect(() => {
+    if (mode !== "returning") return;
+    const idleTimer = window.setTimeout(() => setMode("idle"), 2400);
+    return () => window.clearTimeout(idleTimer);
+  }, [mode]);
+
   return (
     <div
-      className="pointer-events-none absolute inset-x-0 bottom-0 z-[5] h-56"
+      ref={containerRef}
+      className="pointer-events-none absolute inset-0 z-[5]"
       aria-hidden="true"
     >
-      {BUTTERFLIES.map((butterfly) => (
-        <motion.div
-          key={butterfly.id}
-          className="absolute"
-          style={{ left: butterfly.left, bottom: butterfly.bottom }}
-          animate={{
-            x: [...butterfly.x],
-            y: [...butterfly.y],
-            rotate: [...butterfly.rotate],
-          }}
-          transition={{
-            duration: butterfly.duration,
-            delay: butterfly.delay,
-            repeat: Infinity,
-            ease: [0.37, 0, 0.63, 1],
-            times: [0, 0.1, 0.22, 0.34, 0.44, 0.54, 0.64, 0.76, 0.86, 0.94, 1],
-          }}
-        >
-          <Butterfly
-            wing={butterfly.wing}
-            accent={butterfly.accent}
-            size={butterfly.size}
-            flap={butterfly.flap}
-          />
-        </motion.div>
-      ))}
+      {size.w > 0 &&
+        BUTTERFLIES.map((butterfly, index) => {
+          const homeX = butterfly.homeX * size.w - butterfly.size / 2;
+          const homeY = butterfly.homeY * size.h - butterfly.size / 2;
+          const busy = mode !== "idle";
+
+          const animate =
+            mode === "attracted" && attract
+              ? {
+                  x: attract.x + butterfly.gather.x - butterfly.size / 2,
+                  y: attract.y + butterfly.gather.y - butterfly.size / 2,
+                  rotate: butterfly.gather.x >= 0 ? 12 : -12,
+                }
+              : mode === "returning"
+                ? {
+                    x: homeX,
+                    y: homeY,
+                    rotate: 0,
+                  }
+                : {
+                    x: butterfly.x.map((value) => homeX + value),
+                    y: butterfly.y.map((value) => homeY + value),
+                    rotate: [...butterfly.rotate],
+                  };
+
+          const transition =
+            mode === "attracted"
+              ? {
+                  x: {
+                    type: "spring" as const,
+                    stiffness: 38,
+                    damping: 18,
+                    mass: 1.15,
+                    delay: index * 0.08,
+                  },
+                  y: {
+                    type: "spring" as const,
+                    stiffness: 38,
+                    damping: 18,
+                    mass: 1.15,
+                    delay: index * 0.08,
+                  },
+                  rotate: {
+                    type: "tween" as const,
+                    duration: 0.7,
+                    ease: "easeOut" as const,
+                    delay: index * 0.08,
+                  },
+                }
+              : mode === "returning"
+                ? {
+                    x: {
+                      type: "tween" as const,
+                      duration: 2.2,
+                      ease: [0.22, 1, 0.36, 1] as const,
+                      delay: index * 0.12,
+                    },
+                    y: {
+                      type: "tween" as const,
+                      duration: 2.2,
+                      ease: [0.22, 1, 0.36, 1] as const,
+                      delay: index * 0.12,
+                    },
+                    rotate: {
+                      type: "tween" as const,
+                      duration: 1.8,
+                      ease: "easeInOut" as const,
+                      delay: index * 0.12,
+                    },
+                  }
+                : {
+                    duration: butterfly.duration,
+                    delay: 0,
+                    repeat: Infinity,
+                    ease: [0.37, 0, 0.63, 1] as const,
+                    times: [
+                      0, 0.1, 0.22, 0.34, 0.44, 0.54, 0.64, 0.76, 0.86, 0.94, 1,
+                    ],
+                  };
+
+          return (
+            <motion.div
+              key={butterfly.id}
+              className="absolute left-0 top-0"
+              initial={false}
+              animate={animate}
+              transition={transition}
+            >
+              <Butterfly
+                wing={butterfly.wing}
+                accent={butterfly.accent}
+                size={butterfly.size}
+                flap={butterfly.flap}
+                busy={busy}
+              />
+            </motion.div>
+          );
+        })}
     </div>
   );
 }
@@ -166,12 +288,14 @@ export function PasswordGate({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const isLockRoute = pathname === "/lock";
+  const gateRef = useRef<HTMLDivElement>(null);
 
   const [ready, setReady] = useState(false);
   const [unlocked, setUnlocked] = useState(false);
   const [password, setPassword] = useState("");
   const [error, setError] = useState(false);
   const [shakeKey, setShakeKey] = useState(0);
+  const [attract, setAttract] = useState<AttractPoint | null>(null);
 
   useEffect(() => {
     if (isLockRoute) {
@@ -194,6 +318,24 @@ export function PasswordGate({ children }: { children: ReactNode }) {
     }
     setReady(true);
   }, [isLockRoute]);
+
+  function handleAttractPointer(event: PointerEvent<HTMLDivElement>) {
+    // Keep typing / button presses from summoning butterflies.
+    const target = event.target as HTMLElement | null;
+    if (target?.closest("input, button, textarea, select, label, a")) {
+      return;
+    }
+
+    const el = gateRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+
+    setAttract({
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+      id: Date.now(),
+    });
+  }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -231,10 +373,13 @@ export function PasswordGate({ children }: { children: ReactNode }) {
         {!unlocked && (
           <motion.div
             key="password-gate"
-            className="fixed inset-0 z-[100] flex items-center justify-center px-6"
+            ref={gateRef}
+            className="fixed inset-0 z-[100] flex touch-manipulation items-center justify-center px-6"
+            style={{ WebkitTapHighlightColor: "transparent" }}
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+            onPointerDown={handleAttractPointer}
           >
             <div
               className="animate-pastel-wave absolute inset-0"
@@ -244,10 +389,10 @@ export function PasswordGate({ children }: { children: ReactNode }) {
               }}
             />
             <div className="paper-texture absolute inset-0 opacity-30" />
-            <Butterflies />
+            <Butterflies attract={attract} />
 
             <motion.div
-              className="relative z-10 w-full max-w-[340px]"
+              className="pointer-events-none relative z-10 w-full max-w-[340px]"
               initial={{ opacity: 1 }}
               exit={{ opacity: 0, y: -12 }}
               transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
@@ -274,7 +419,7 @@ export function PasswordGate({ children }: { children: ReactNode }) {
               </div>
 
               <motion.div
-                className="space-y-3"
+                className="pointer-events-auto space-y-3"
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.9, delay: 2.0, ease: [0.22, 1, 0.36, 1] }}
