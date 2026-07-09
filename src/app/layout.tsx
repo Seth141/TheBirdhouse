@@ -5,6 +5,7 @@ import { QueryProvider } from "@/lib/query/QueryProvider";
 import { SkyBackground } from "@/components/background/SkyBackground";
 import { ToastLayer } from "@/components/ui/ToastLayer";
 import { PwaRegister } from "@/components/PwaRegister";
+import { PasswordGate } from "@/components/auth/PasswordGate";
 
 const cormorant = Cormorant_Garamond({
   variable: "--font-cormorant",
@@ -55,14 +56,16 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col text-[#4F545A]">
         <QueryProvider>
-          <div className="relative min-h-dvh w-full overflow-x-hidden">
-            <SkyBackground />
-            <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-[480px] flex-col">
-              {children}
+          <PasswordGate>
+            <div className="relative min-h-dvh w-full overflow-x-hidden">
+              <SkyBackground />
+              <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-[480px] flex-col">
+                {children}
+              </div>
             </div>
-          </div>
-          <ToastLayer />
-          <PwaRegister />
+            <ToastLayer />
+            <PwaRegister />
+          </PasswordGate>
         </QueryProvider>
       </body>
     </html>
