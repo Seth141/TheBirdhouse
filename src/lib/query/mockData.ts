@@ -83,7 +83,7 @@ export interface NatureTip {
 export const mockTip: NatureTip = {
   id: "tip-1",
   title: "Tip of the Day",
-  body: "Early mornings are the best time to see new visitors!",
+  body: "A soft perch near the entrance helps shy birds feel safe enough to visit.",
 };
 
 export interface WeeklyVisit {

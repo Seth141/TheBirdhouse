@@ -8,9 +8,9 @@ import {
   mockNotifications,
   mockRecordings,
   mockStats,
-  mockTip,
   mockVisitorShare,
   mockWeeklyVisits,
+  type NatureTip,
 } from "./mockData";
 
 const simulateNetwork = <T,>(data: T, delay = 400): Promise<T> =>
@@ -44,10 +44,27 @@ export function useMotionEvents() {
   });
 }
 
+/** Fresh OpenAI tip on every call — used if anything still imports this hook. */
 export function useNatureTip() {
   return useQuery({
-    queryKey: ["tip"],
-    queryFn: () => simulateNetwork(mockTip),
+    queryKey: ["tip", "openai"],
+    queryFn: async (): Promise<NatureTip> => {
+      const res = await fetch(`/api/tip?t=${Date.now()}`, {
+        method: "GET",
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
+      });
+      if (!res.ok) throw new Error("Could not load tip");
+      return res.json();
+    },
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: false,
+    retry: 1,
   });
 }
 

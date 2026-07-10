@@ -5,8 +5,13 @@ import { StatsGrid } from "@/components/home/StatsGrid";
 import { RecentMoments } from "@/components/home/RecentMoments";
 import { TipCard } from "@/components/home/TipCard";
 import { DesktopInsights } from "@/components/home/DesktopInsights";
+import { generateBirdTip } from "@/lib/tips/generateBirdTip";
 
-export default function HomePage() {
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const tip = await generateBirdTip();
+
   return (
     <>
       <Header variant="home" />
@@ -16,7 +21,7 @@ export default function HomePage() {
           <LiveCameraCard />
           <StatsGrid />
           <RecentMoments />
-          <TipCard />
+          <TipCard tip={tip} />
         </div>
 
         <div className="hidden lg:grid lg:grid-cols-[1.15fr_0.85fr] lg:items-start lg:gap-8 xl:gap-10">
@@ -28,7 +33,7 @@ export default function HomePage() {
           <aside className="space-y-6 lg:sticky lg:top-36">
             <LiveCameraCard />
             <StatsGrid />
-            <TipCard />
+            <TipCard tip={tip} />
           </aside>
         </div>
       </main>

@@ -3,13 +3,14 @@
 import { GlassCard } from "@/components/ui/GlassCard";
 import { FadeIn } from "@/components/motion/FadeIn";
 import { LeafIcon, ChevronRightIcon } from "@/components/icons";
-import { useNatureTip } from "@/lib/query/hooks";
+import type { NatureTip } from "@/lib/query/mockData";
 import { playTipSound, warmSoftSounds } from "@/lib/audio/softSounds";
 
-export function TipCard() {
-  const { data: tip } = useNatureTip();
-  if (!tip) return null;
-
+/**
+ * Tip of the Day — receives a server-generated tip so every full page
+ * load shows a fresh OpenAI tip without relying on client fetch timing.
+ */
+export function TipCard({ tip }: { tip: NatureTip }) {
   return (
     <FadeIn delay={0.25}>
       <button
