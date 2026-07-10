@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect } from "react";
 import { useAppStore } from "@/lib/store/useAppStore";
-import { FeatherIcon } from "@/components/icons";
+import { LeafIcon } from "@/components/icons";
 
 /**
  * Quiet, journal-style toast surface — used for things like snapshot
@@ -30,9 +30,9 @@ export function ToastLayer() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-            className="glass-card pointer-events-auto flex items-center gap-2 px-4 py-2.5 text-sm text-[#4F545A]"
+            className="glass-card pointer-events-auto flex items-center gap-2.5 px-4 py-2.5 text-sm text-[#4F545A]"
           >
-            <FeatherIcon size={16} wash="none" />
+            <LeafIcon size={18} wash="sage" />
             {toast.message}
           </motion.div>
         ))}

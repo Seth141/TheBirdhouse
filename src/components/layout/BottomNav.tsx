@@ -42,7 +42,19 @@ export function BottomNav() {
             active ? "bg-[#F4E5E7]/70" : "bg-transparent"
           )}
         >
-          <tab.Icon size={20} wash="none" className={active ? "text-[#4F545A]" : "text-[#8A8F94]"} />
+          <tab.Icon
+            size={22}
+            wash={
+              tab.href === "/"
+                ? "blush"
+                : tab.href === "/live-camera"
+                  ? "dustyBlue"
+                  : tab.href === "/gallery"
+                    ? "lavender"
+                    : "taupe"
+            }
+            className={active ? "opacity-100" : "opacity-55"}
+          />
         </span>
         <span
           className={cn(

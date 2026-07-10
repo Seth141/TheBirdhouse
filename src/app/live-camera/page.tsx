@@ -10,7 +10,7 @@ import { useCameraSource } from "@/lib/camera/useCameraSource";
 import { birdhouseCameraConfig } from "@/lib/camera/createCameraSource";
 import { useMotionEvents } from "@/lib/query/hooks";
 import { useAppStore } from "@/lib/store/useAppStore";
-import { DownloadIcon, ShareIcon, FeatherIcon } from "@/components/icons";
+import { DownloadIcon, ShareIcon, NestIcon } from "@/components/icons";
 import { LoadingFeather } from "@/components/motion/LoadingFeather";
 
 export default function LiveCameraPage() {
@@ -43,7 +43,7 @@ export default function LiveCameraPage() {
                   aria-label="Capture snapshot"
                   className="glass-card flex h-9 w-9 items-center justify-center lg:h-10 lg:w-10"
                 >
-                  <DownloadIcon size={16} wash="none" />
+                  <DownloadIcon size={18} wash="sage" />
                 </button>
                 <button
                   type="button"
@@ -51,7 +51,7 @@ export default function LiveCameraPage() {
                   aria-label="Share live view"
                   className="glass-card flex h-9 w-9 items-center justify-center lg:h-10 lg:w-10"
                 >
-                  <ShareIcon size={16} wash="none" />
+                  <ShareIcon size={18} wash="dustyBlue" />
                 </button>
               </div>
             </div>
@@ -93,11 +93,14 @@ export default function LiveCameraPage() {
           ) : (
             <GlassCard
               padding="lg"
-              className="flex flex-col items-center gap-2 text-center lg:py-12"
+              className="flex flex-col items-center gap-3 text-center lg:py-12"
             >
-              <FeatherIcon size={28} wash="dustyBlue" />
-              <p className="text-sm text-[#8A8F94] lg:text-base">
-                No motion yet today. The nest is quiet.
+              <NestIcon size={40} wash="sage" />
+              <p className="font-heading text-base font-medium text-[#4F545A] lg:text-lg">
+                The nest is quiet
+              </p>
+              <p className="max-w-[240px] text-sm leading-relaxed text-[#8A8F94] lg:text-base">
+                No motion yet today. Soft blossoms wait with you.
               </p>
             </GlassCard>
           )}

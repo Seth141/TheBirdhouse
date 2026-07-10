@@ -10,9 +10,9 @@ import { useCameraSource } from "@/lib/camera/useCameraSource";
 import { birdhouseCameraConfig } from "@/lib/camera/createCameraSource";
 import {
   NotificationIcon,
-  FeatherIcon,
   CameraIcon,
   LeafIcon,
+  FlowerIcon,
   BirdhouseIcon,
 } from "@/components/icons";
 
@@ -59,7 +59,7 @@ export default function SettingsPage() {
           </h2>
           <GlassCard padding="sm" className="divide-y divide-white/40 lg:p-5">
             <SettingsRow
-              icon={<CameraIcon size={18} wash="none" />}
+              icon={<CameraIcon size={20} wash="taupe" />}
               title="Birdhouse Cam"
               description={`${birdhouseCameraConfig.protocol.toUpperCase()} · Wyze Cam V3`}
               control={<CameraStatusBadge status={status} />}
@@ -73,19 +73,19 @@ export default function SettingsPage() {
           </h2>
           <GlassCard padding="sm" className="divide-y divide-white/40 lg:p-5">
             <SettingsRow
-              icon={<NotificationIcon size={18} wash="none" />}
+              icon={<NotificationIcon size={20} wash="blush" />}
               title="Motion alerts"
               description="Gently notify me when a bird visits"
               control={<Switch checked={motionAlerts} onChange={setMotionAlerts} label="Motion alerts" />}
             />
             <SettingsRow
-              icon={<LeafIcon size={18} wash="none" />}
+              icon={<LeafIcon size={20} wash="sage" />}
               title="Daily digest"
               description="A quiet morning summary"
               control={<Switch checked={dailyDigest} onChange={setDailyDigest} label="Daily digest" />}
             />
             <SettingsRow
-              icon={<FeatherIcon size={18} wash="none" />}
+              icon={<FlowerIcon size={20} wash="blush" />}
               title="Notification sound"
               description="A soft chime, never jarring"
               control={<Switch checked={sound} onChange={setSound} label="Notification sound" />}
@@ -99,7 +99,7 @@ export default function SettingsPage() {
           </h2>
           <GlassCard padding="sm" className="divide-y divide-white/40 lg:p-5">
             <SettingsRow
-              icon={<BirdhouseIcon size={18} wash="none" />}
+              icon={<BirdhouseIcon size={20} wash="taupe" />}
               title="Reduce motion"
               description="Turn off drifting clouds and floating icons"
               control={<Switch checked={reducedMotion} onChange={setReducedMotion} label="Reduce motion" />}

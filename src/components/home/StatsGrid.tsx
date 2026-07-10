@@ -3,7 +3,7 @@
 import type { ComponentType } from "react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { FadeIn } from "@/components/motion/FadeIn";
-import { LeafIcon, EggIcon, FlowerIcon, FavoriteIcon, type IconProps } from "@/components/icons";
+import { BirdIcon, EggIcon, NestIcon, FavoriteIcon, type IconProps } from "@/components/icons";
 import { useStats } from "@/lib/query/hooks";
 
 const items: {
@@ -13,9 +13,9 @@ const items: {
   wash: IconProps["wash"];
   value: (s: ReturnType<typeof useStats>["data"]) => number | undefined;
 }[] = [
-  { key: "birds", label: "Birds Today", Icon: LeafIcon, wash: "sage", value: (s) => s?.birdsToday },
-  { key: "eggs", label: "Eggs Laid", Icon: EggIcon, wash: "dustyBlue", value: (s) => s?.eggsLaid },
-  { key: "visits", label: "Visits Today", Icon: FlowerIcon, wash: "lavender", value: (s) => s?.visitsToday },
+  { key: "birds", label: "Birds Today", Icon: BirdIcon, wash: "dustyBlue", value: (s) => s?.birdsToday },
+  { key: "eggs", label: "Eggs Laid", Icon: EggIcon, wash: "sage", value: (s) => s?.eggsLaid },
+  { key: "visits", label: "Visits Today", Icon: NestIcon, wash: "sage", value: (s) => s?.visitsToday },
   { key: "total", label: "Total Visits", Icon: FavoriteIcon, wash: "blush", value: (s) => s?.totalVisits },
 ];
 

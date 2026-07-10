@@ -98,7 +98,7 @@ export function NotificationsDrawer({
                           isRead ? "bg-transparent" : "bg-[#F4E5E7]/70"
                         }`}
                       >
-                        <NotificationIcon size={14} wash="none" />
+                        <NotificationIcon size={16} wash="blush" />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="flex items-baseline justify-between gap-2">

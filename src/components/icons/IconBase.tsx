@@ -1,36 +1,55 @@
-import type { SVGProps } from "react";
+import type { SVGProps, ReactNode } from "react";
 import { cn } from "@/lib/utils/cn";
 
-export interface IconProps extends SVGProps<SVGSVGElement> {
+export type IconWash =
+  | "sage"
+  | "blush"
+  | "dustyBlue"
+  | "taupe"
+  | "lavender"
+  | "none";
+
+export interface IconProps extends Omit<SVGProps<SVGSVGElement>, "children"> {
   size?: number;
-  /** Soft pastel wash rendered behind the glyph, evoking a brushed watercolor dab. */
-  wash?: "sage" | "blush" | "dustyBlue" | "taupe" | "lavender" | "none";
+  /** Soft pastel pigment family — always a step darker than the sage sky. */
+  wash?: IconWash;
   className?: string;
 }
 
-const washColors: Record<NonNullable<IconProps["wash"]>, string> = {
-  sage: "#D6E1D5",
-  blush: "#F4E5E7",
-  dustyBlue: "#B9CBD8",
-  taupe: "#E4DCD2",
-  lavender: "#DCD6E8",
-  none: "transparent",
+/**
+ * Pigment families sit darker than the sage garden background (#DDE7DC / #D6E1D5)
+ * so every glyph reads clearly without going black.
+ */
+export const pastel = {
+  sage: { soft: "#A7B8A6", mid: "#7E9180", deep: "#5F7264" },
+  blush: { soft: "#D2B4B8", mid: "#B07E86", deep: "#8A5A62" },
+  dustyBlue: { soft: "#8FA9B8", mid: "#6D8A9A", deep: "#516F7E" },
+  taupe: { soft: "#B5A89C", mid: "#8F8276", deep: "#6C6157" },
+  lavender: { soft: "#B3A9C6", mid: "#8B80A6", deep: "#6A6084" },
+  cream: { soft: "#F3EEE6", mid: "#E5DED3", deep: "#C9C0B4" },
+} as const;
+
+const washToFamily: Record<Exclude<IconWash, "none">, keyof typeof pastel> = {
+  sage: "sage",
+  blush: "blush",
+  dustyBlue: "dustyBlue",
+  taupe: "taupe",
+  lavender: "lavender",
 };
 
-/**
- * Shared chrome for the hand-painted icon set: a soft blurred wash of
- * pastel pigment sits behind a warm-ink line glyph, so every icon reads as
- * "brushed" rather than machine-drawn, matching the botanical artwork.
- */
+export type PastelTone = { soft: string; mid: string; deep: string };
+
 export function IconBase({
   size = 24,
-  wash = "none",
+  wash = "sage",
   className,
   children,
   viewBox = "0 0 24 24",
   ...props
-}: IconProps) {
-  const washFill = washColors[wash];
+}: IconProps & { children: (colors: PastelTone) => ReactNode }) {
+  const family =
+    wash === "none" ? pastel.taupe : pastel[washToFamily[wash]];
+
   return (
     <svg
       width={size}
@@ -41,25 +60,7 @@ export function IconBase({
       aria-hidden={props["aria-label"] ? undefined : true}
       {...props}
     >
-      {wash !== "none" && (
-        <ellipse
-          cx="12"
-          cy="13"
-          rx="10.5"
-          ry="9.5"
-          fill={washFill}
-          opacity="0.55"
-          style={{ filter: "blur(2.5px)" }}
-        />
-      )}
-      <g
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        {children}
-      </g>
+      {children(family)}
     </svg>
   );
 }

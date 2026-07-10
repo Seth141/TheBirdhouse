@@ -30,7 +30,7 @@ export function CameraStatusBadge({
       <span
         className={cn(
           "h-1.5 w-1.5 rounded-full",
-          isLive ? "bg-[#7C9473] animate-pulse" : "bg-[#B9AEA4]"
+          isLive ? "bg-[#7C9473] animate-live-glow" : "bg-[#B9AEA4]"
         )}
       />
       {copy[status]}

@@ -15,7 +15,7 @@ export function Hero() {
           alt="A watercolor-style birdhouse tucked among cherry blossoms and leaves, with a small bird perched nearby"
           fill
           sizes="(min-width: 1024px) 640px, 100vw"
-          className="object-cover object-[62%_85%] lg:object-[52%_88%]"
+          className="animate-ken-burns object-cover object-[62%_85%] lg:object-[52%_88%]"
           priority
         />
 

@@ -26,8 +26,8 @@ export function TipCard() {
           padding="sm"
           className="flex items-center gap-3 transition-transform active:scale-[0.99] lg:gap-4 lg:p-5"
         >
-          <span className="animate-float flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/55 lg:h-14 lg:w-14">
-            <LeafIcon size={20} wash="none" className="lg:scale-110" />
+          <span className="animate-float-soft flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/40 lg:h-14 lg:w-14">
+            <LeafIcon size={24} wash="sage" className="lg:scale-110" />
           </span>
           <span className="min-w-0 flex-1">
             <span className="font-heading block text-sm font-medium text-[#4F545A] lg:text-lg">
@@ -37,7 +37,7 @@ export function TipCard() {
               {tip.body}
             </span>
           </span>
-          <ChevronRightIcon size={16} className="shrink-0 text-[#8A8F94] lg:scale-110" />
+          <ChevronRightIcon size={16} className="shrink-0 lg:scale-110" />
         </GlassCard>
       </button>
     </FadeIn>

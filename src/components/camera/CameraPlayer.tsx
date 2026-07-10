@@ -25,15 +25,15 @@ export function CameraPlayer({ config, variant = "card", className }: CameraPlay
   const isMock = config.protocol === "mock";
 
   return (
-    <div
-      className={cn(
-        "relative overflow-hidden rounded-[22px] bg-[#DCE6EC]",
-        variant === "card"
-          ? "aspect-[4/3]"
-          : "aspect-[3/4] lg:aspect-video",
-        className
-      )}
-    >
+    <div className={cn("wood-frame", className)}>
+      <div
+        className={cn(
+          "wood-frame-inner relative bg-[#DCE6EC]",
+          variant === "card"
+            ? "aspect-[4/3]"
+            : "aspect-[3/4] lg:aspect-video"
+        )}
+      >
       <AnimatePresence mode="wait">
         {(status === "idle" || status === "connecting") && (
           <motion.div
@@ -100,6 +100,7 @@ export function CameraPlayer({ config, variant = "card", className }: CameraPlay
 
       <div className="pointer-events-none absolute left-3 top-3 right-3 flex items-center justify-between">
         <CameraStatusBadge status={status} />
+      </div>
       </div>
     </div>
   );

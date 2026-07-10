@@ -55,10 +55,10 @@ export function MenuDrawer({
                   className="flex items-center justify-between gap-3 rounded-2xl px-3 py-2.5 text-sm text-[#4F545A] transition-colors hover:bg-white/50"
                 >
                   <span className="flex items-center gap-2.5">
-                    <Icon size={18} />
+                    <Icon size={20} />
                     {label}
                   </span>
-                  <ChevronRightIcon size={14} className="text-[#8A8F94]" />
+                  <ChevronRightIcon size={14} />
                 </Link>
               ))}
             </nav>

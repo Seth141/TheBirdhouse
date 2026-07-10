@@ -51,10 +51,14 @@ export function MomentCard({
         className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/50 backdrop-blur-sm"
       >
         <FavoriteIcon
-          size={14}
-          wash="none"
-          className={isFavorite ? "text-[#C98A93]" : "text-white"}
-          style={isFavorite ? { fill: "#C98A93" } : undefined}
+          size={15}
+          wash="blush"
+          className={isFavorite ? "opacity-100" : "opacity-70"}
+          style={
+            isFavorite
+              ? undefined
+              : { filter: "grayscale(0.35) brightness(1.15)" }
+          }
         />
       </button>
     </motion.div>

@@ -31,11 +31,11 @@ export function LiveCameraCard() {
         >
           <div className="flex items-center gap-3 p-4 lg:hidden">
             <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/55">
-              <LiveCameraIcon size={20} wash="none" />
+              <LiveCameraIcon size={22} wash="dustyBlue" />
               <span
                 className={cn(
-                  "absolute -right-0.5 -bottom-0.5 h-3 w-3 rounded-full ring-2 ring-white/80",
-                  isLive ? "bg-[#8FA888]" : "bg-[#B9AEA4]"
+                  "absolute right-0 bottom-0 h-2 w-2 rounded-full ring-2 ring-white/80",
+                  isLive ? "bg-[#8FA888] animate-live-glow" : "bg-[#B9AEA4]"
                 )}
                 aria-hidden
               />
@@ -56,7 +56,10 @@ export function LiveCameraCard() {
                 alt="Thumbnail of the nest inside the birdhouse"
                 fill
                 sizes="64px"
-                className="object-cover"
+                className={cn(
+                  "object-cover",
+                  isLive && "animate-breathe-soft"
+                )}
               />
             </span>
 
@@ -64,23 +67,37 @@ export function LiveCameraCard() {
           </div>
 
           <div className="hidden lg:block">
-            <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#DCE6EC]">
-              <Image
-                src="/artwork/nests/nest-eggs.png"
-                alt="Thumbnail of the nest inside the birdhouse"
-                fill
-                sizes="380px"
-                className="object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#4F545A]/35 via-transparent to-transparent" />
-              <span
-                className={cn(
-                  "absolute top-3 left-3 rounded-full px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-md",
-                  isLive ? "bg-[#8FA888]/85" : "bg-[#B9AEA4]/85"
-                )}
-              >
-                {isLive ? "Live" : "Connecting…"}
-              </span>
+            <div className="p-2.5 pb-0">
+              <div className="wood-frame">
+                <div className="wood-frame-inner relative aspect-[16/10] w-full">
+                  <Image
+                    src="/artwork/nests/nest-eggs.png"
+                    alt="Thumbnail of the nest inside the birdhouse"
+                    fill
+                    sizes="380px"
+                    className={cn(
+                      "object-cover",
+                      isLive && "animate-breathe-soft"
+                    )}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#4F545A]/35 via-transparent to-transparent" />
+                  <span
+                    className={cn(
+                      "absolute top-3 left-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-md",
+                      isLive ? "bg-[#8FA888]/85" : "bg-[#B9AEA4]/85"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "h-1.5 w-1.5 rounded-full bg-white",
+                        isLive && "animate-live-glow"
+                      )}
+                      aria-hidden
+                    />
+                    {isLive ? "Live" : "Connecting…"}
+                  </span>
+                </div>
+              </div>
             </div>
             <div className="flex items-center justify-between gap-3 px-4 py-3.5">
               <span>
