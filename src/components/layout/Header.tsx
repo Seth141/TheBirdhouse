@@ -9,6 +9,7 @@ import { MenuDrawer } from "@/components/layout/MenuDrawer";
 import { NotificationsDrawer } from "@/components/layout/NotificationsDrawer";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { useNotifications } from "@/lib/query/hooks";
+import { prewarmCameraBridge } from "@/lib/camera/prewarmBridge";
 import { cn } from "@/lib/utils/cn";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -105,6 +106,9 @@ export function Header({
                   key={item.href}
                   href={item.href}
                   aria-current={active ? "page" : undefined}
+                  onPointerDown={() => {
+                    if (item.href === "/live-camera") prewarmCameraBridge();
+                  }}
                   className={cn(
                     "rounded-full px-3.5 py-2 text-sm transition-colors",
                     active

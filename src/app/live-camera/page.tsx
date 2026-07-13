@@ -8,6 +8,7 @@ import { FadeIn } from "@/components/motion/FadeIn";
 import { CameraPlayer } from "@/components/camera/CameraPlayer";
 import { CameraStatusBadge } from "@/components/camera/CameraStatusBadge";
 import { birdhouseCameraConfig } from "@/lib/camera/createCameraSource";
+import { prewarmCameraBridge } from "@/lib/camera/prewarmBridge";
 import type {
   CameraConnectionStatus,
   CameraSnapshot,
@@ -17,8 +18,12 @@ import { useAppStore } from "@/lib/store/useAppStore";
 import { DownloadIcon, ShareIcon, NestIcon } from "@/components/icons";
 import { LoadingFeather } from "@/components/motion/LoadingFeather";
 
+type BridgePhase = "ready" | "starting" | "stopped" | "unknown" | "unconfigured";
+
 export default function LiveCameraPage() {
   const [status, setStatus] = useState<CameraConnectionStatus>("idle");
+  const [bridgePhase, setBridgePhase] = useState<BridgePhase>("starting");
+  const [bridgeMessage, setBridgeMessage] = useState("Waking camera…");
   const captureRef = useRef<(() => Promise<CameraSnapshot>) | null>(null);
   const pushToast = useAppStore((s) => s.pushToast);
   const setSnapshotHandler = useAppStore((s) => s.setSnapshotHandler);
@@ -26,6 +31,46 @@ export default function LiveCameraPage() {
 
   const handleStatus = useCallback((next: CameraConnectionStatus) => {
     setStatus(next);
+  }, []);
+
+  // Kick wake immediately (card may have pre-warmed already).
+  useEffect(() => {
+    prewarmCameraBridge();
+    let cancelled = false;
+
+    const poll = async () => {
+      try {
+        const res = await fetch("/api/bridge/status", { cache: "no-store" });
+        const data = (await res.json()) as {
+          phase?: BridgePhase;
+          message?: string;
+        };
+        if (cancelled) return;
+        setBridgePhase(data.phase ?? "unknown");
+        setBridgeMessage(data.message ?? "Connecting…");
+      } catch {
+        if (!cancelled) {
+          setBridgePhase("unknown");
+          setBridgeMessage("Still connecting…");
+        }
+      }
+    };
+
+    void fetch("/api/bridge/wake", { method: "POST", cache: "no-store" })
+      .then((r) => r.json())
+      .then((data: { phase?: BridgePhase; message?: string }) => {
+        if (cancelled) return;
+        setBridgePhase(data.phase ?? "starting");
+        setBridgeMessage(data.message ?? "Waking camera…");
+      })
+      .catch(() => undefined);
+
+    void poll();
+    const id = window.setInterval(poll, 2000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
   }, []);
 
   useEffect(() => {
@@ -49,20 +94,41 @@ export default function LiveCameraPage() {
     pushToast("Snapshot saved to your gallery.");
   };
 
+  const showPlayer =
+    birdhouseCameraConfig.protocol === "mock" ||
+    bridgePhase === "ready" ||
+    bridgePhase === "unconfigured";
+
   return (
     <AppShell title="Live Camera" subtitle="Watching your birdhouse">
       <div className="space-y-6 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-8 lg:space-y-0 xl:grid-cols-[minmax(0,1fr)_340px] xl:gap-10">
         <FadeIn>
           <GlassCard padding="sm" className="lg:p-4">
-            <CameraPlayer
-              config={birdhouseCameraConfig}
-              variant="full"
-              onStatusChange={handleStatus}
-              captureRef={captureRef}
-            />
+            {showPlayer ? (
+              <CameraPlayer
+                config={birdhouseCameraConfig}
+                variant="full"
+                onStatusChange={handleStatus}
+                captureRef={captureRef}
+              />
+            ) : (
+              <div className="wood-frame">
+                <div className="wood-frame-inner relative flex aspect-[3/4] items-center justify-center bg-[#EEF6FB] lg:aspect-video">
+                  <LoadingFeather label={bridgeMessage} />
+                </div>
+              </div>
+            )}
             <div className="flex items-center justify-between px-1 pt-3 lg:pt-4">
               <div className="flex items-center gap-2">
-                <CameraStatusBadge status={status} />
+                <CameraStatusBadge
+                  status={
+                    showPlayer
+                      ? status
+                      : bridgePhase === "starting"
+                        ? "connecting"
+                        : "offline"
+                  }
+                />
                 <span className="text-xs text-[#8A8F94] lg:text-sm">
                   Wyze Cam V3 · Birdhouse
                 </span>

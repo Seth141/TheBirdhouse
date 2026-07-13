@@ -25,11 +25,25 @@ CAMERA_STREAM_USER=wb
 CAMERA_STREAM_PASSWORD=<WB_API from bridge WebUI — not the Wyze developer API_KEY>
 ```
 
-**Confirmed working** on local `npm run dev` and on Vercel production (after those env vars + redeploy). Railway wyze-bridge must stay Running with the public domain on port 8888.
+**Confirmed working** on local `npm run dev` and on Vercel production (after those env vars + redeploy).
+
+### On-demand Railway (cost control, faster wake)
+
+Bridge starts when the user taps Live Cam (pre-warm on press) and stops after `CAMERA_IDLE_MINUTES` (cron `/api/bridge/idle-check`).
+
+Speed levers (cannot be instant from a full stop):
+1. Pre-warm on tap/hover before `/live-camera` mounts
+2. `serviceInstanceRedeploy` of existing image — no rebuild
+3. Keep-alive window so re-opens within ~12 min are instant
+4. Never restart a healthy SUCCESS deploy just to “wake”
+
+Env: `RAILWAY_API_TOKEN`, `RAILWAY_SERVICE_ID`, `RAILWAY_ENVIRONMENT_ID`, optional `CAMERA_IDLE_MINUTES`, `CRON_SECRET`
+
+Railway wyze-bridge must stay Running with the public domain on port 8888 while viewing.
 
 Camera path is `bird` (Wyze name "Bird"). Auth user for streams is `wb`.
 
-Diagnostics: `/api/camera-status` (no secrets) and `/api/camera/bird/stream.m3u8` (should start with `#EXTM3U`).
+Diagnostics: `/api/camera-status`, `/api/bridge/status`, `/api/camera/bird/stream.m3u8` (should start with `#EXTM3U`).
 
 Wyze developer `API_ID` / `API_KEY` are Railway-only for the bridge; never `NEXT_PUBLIC_*`.
 
@@ -37,4 +51,6 @@ Wyze developer `API_ID` / `API_KEY` are Railway-only for the bridge; never `NEXT
 
 - `src/lib/camera/*` — HLS player; always-mounted `<video>` for attach
 - `src/app/api/camera/[...path]/route.ts` — server-side Basic auth + upstream fetch
+- `src/lib/railway/wyzeBridge.ts` + `/api/bridge/*` — on-demand start/stop
 - **Stream only on `/live-camera`** — home `LiveCameraCard` is a static poster + link; it must never mount `CameraPlayer` / open HLS
+- Pre-warm via `prewarmCameraBridge()` on Live Cam press

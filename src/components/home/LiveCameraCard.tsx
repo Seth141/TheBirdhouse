@@ -6,28 +6,36 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { FadeIn } from "@/components/motion/FadeIn";
 import { LiveCameraIcon, ChevronRightIcon } from "@/components/icons";
 import { birdhouseCameraConfig } from "@/lib/camera/createCameraSource";
+import { prewarmCameraBridge } from "@/lib/camera/prewarmBridge";
 import { playLiveCamSound, warmSoftSounds } from "@/lib/audio/softSounds";
 import { cn } from "@/lib/utils/cn";
 
 /**
  * Home entry point only — never opens the HLS stream.
- * Streaming starts exclusively on `/live-camera` when the user taps through.
+ * Pre-warms the Railway bridge on press so /live-camera is ready sooner.
  */
 export function LiveCameraCard() {
   const streamReady = birdhouseCameraConfig.protocol !== "mock";
   const posterSrc =
     birdhouseCameraConfig.snapshotUrl ?? "/artwork/nests/nest-eggs.png";
 
+  const beginWatch = () => {
+    warmSoftSounds();
+    playLiveCamSound();
+    prewarmCameraBridge();
+  };
+
   return (
     <FadeIn delay={0.1}>
       <Link
         href="/live-camera"
         aria-label="Open live camera, full screen"
-        onPointerEnter={() => warmSoftSounds()}
-        onPointerDown={() => {
+        onPointerEnter={() => {
           warmSoftSounds();
-          playLiveCamSound();
+          // Desktop hover: start waking a moment before click.
+          if (streamReady) prewarmCameraBridge();
         }}
+        onPointerDown={beginWatch}
       >
         <GlassCard
           padding="none"
