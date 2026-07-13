@@ -18,12 +18,18 @@ import { useAppStore } from "@/lib/store/useAppStore";
 import { DownloadIcon, ShareIcon, NestIcon } from "@/components/icons";
 import { LoadingFeather } from "@/components/motion/LoadingFeather";
 
-type BridgePhase = "ready" | "starting" | "stopped" | "unknown" | "unconfigured";
+type BridgePhase =
+  | "ready"
+  | "starting"
+  | "stopped"
+  | "unknown"
+  | "unconfigured";
 
 export default function LiveCameraPage() {
   const [status, setStatus] = useState<CameraConnectionStatus>("idle");
   const [bridgePhase, setBridgePhase] = useState<BridgePhase>("starting");
   const [bridgeMessage, setBridgeMessage] = useState("Waking camera…");
+  const [controlConfigured, setControlConfigured] = useState(true);
   const captureRef = useRef<(() => Promise<CameraSnapshot>) | null>(null);
   const pushToast = useAppStore((s) => s.pushToast);
   const setSnapshotHandler = useAppStore((s) => s.setSnapshotHandler);
@@ -33,45 +39,59 @@ export default function LiveCameraPage() {
     setStatus(next);
   }, []);
 
-  // Kick wake immediately (card may have pre-warmed already).
+  const refreshBridge = useCallback(async (kickWake: boolean) => {
+    try {
+      if (kickWake) {
+        const wakeRes = await fetch("/api/bridge/wake", {
+          method: "POST",
+          cache: "no-store",
+        });
+        const wake = (await wakeRes.json()) as {
+          phase?: BridgePhase;
+          message?: string;
+          controlConfigured?: boolean;
+        };
+        setBridgePhase(wake.phase ?? "starting");
+        setBridgeMessage(wake.message ?? "Waking camera…");
+        if (typeof wake.controlConfigured === "boolean") {
+          setControlConfigured(wake.controlConfigured);
+        }
+        if (wake.phase === "ready") return;
+      }
+
+      const res = await fetch("/api/bridge/status", { cache: "no-store" });
+      const data = (await res.json()) as {
+        phase?: BridgePhase;
+        message?: string;
+        controlConfigured?: boolean;
+      };
+      setBridgePhase(data.phase ?? "unknown");
+      setBridgeMessage(data.message ?? "Connecting…");
+      if (typeof data.controlConfigured === "boolean") {
+        setControlConfigured(data.controlConfigured);
+      }
+    } catch {
+      setBridgePhase("unknown");
+      setBridgeMessage("Still connecting…");
+    }
+  }, []);
+
   useEffect(() => {
     prewarmCameraBridge();
     let cancelled = false;
 
-    const poll = async () => {
-      try {
-        const res = await fetch("/api/bridge/status", { cache: "no-store" });
-        const data = (await res.json()) as {
-          phase?: BridgePhase;
-          message?: string;
-        };
-        if (cancelled) return;
-        setBridgePhase(data.phase ?? "unknown");
-        setBridgeMessage(data.message ?? "Connecting…");
-      } catch {
-        if (!cancelled) {
-          setBridgePhase("unknown");
-          setBridgeMessage("Still connecting…");
-        }
-      }
+    const tick = async () => {
+      if (cancelled) return;
+      await refreshBridge(false);
     };
 
-    void fetch("/api/bridge/wake", { method: "POST", cache: "no-store" })
-      .then((r) => r.json())
-      .then((data: { phase?: BridgePhase; message?: string }) => {
-        if (cancelled) return;
-        setBridgePhase(data.phase ?? "starting");
-        setBridgeMessage(data.message ?? "Waking camera…");
-      })
-      .catch(() => undefined);
-
-    void poll();
-    const id = window.setInterval(poll, 2000);
+    void refreshBridge(true);
+    const id = window.setInterval(tick, 2500);
     return () => {
       cancelled = true;
       window.clearInterval(id);
     };
-  }, []);
+  }, [refreshBridge]);
 
   useEffect(() => {
     setSnapshotHandler(async () => {
@@ -94,10 +114,13 @@ export default function LiveCameraPage() {
     pushToast("Snapshot saved to your gallery.");
   };
 
+  // Only mount the HLS player once the bridge is actually serving video.
   const showPlayer =
-    birdhouseCameraConfig.protocol === "mock" ||
-    bridgePhase === "ready" ||
-    bridgePhase === "unconfigured";
+    birdhouseCameraConfig.protocol === "mock" || bridgePhase === "ready";
+
+  const waitingCopy = !controlConfigured
+    ? "On-demand wake isn’t configured yet. Start wyze-bridge in Railway, or add RAILWAY_API_TOKEN + service/environment IDs on Vercel."
+    : bridgeMessage;
 
   return (
     <AppShell title="Live Camera" subtitle="Watching your birdhouse">
@@ -113,8 +136,24 @@ export default function LiveCameraPage() {
               />
             ) : (
               <div className="wood-frame">
-                <div className="wood-frame-inner relative flex aspect-[3/4] items-center justify-center bg-[#EEF6FB] lg:aspect-video">
-                  <LoadingFeather label={bridgeMessage} />
+                <div className="wood-frame-inner relative flex aspect-[3/4] flex-col items-center justify-center gap-4 bg-[#EEF6FB] px-6 text-center lg:aspect-video">
+                  <LoadingFeather
+                    label={
+                      bridgePhase === "unconfigured" || bridgePhase === "stopped"
+                        ? "Camera bridge is offline"
+                        : "Waking camera…"
+                    }
+                  />
+                  <p className="max-w-sm text-sm leading-relaxed text-[#8A8F94]">
+                    {waitingCopy}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => void refreshBridge(true)}
+                    className="rounded-full bg-white/70 px-4 py-2 text-sm font-medium text-[#4F545A] transition-colors hover:bg-white/90"
+                  >
+                    Try again
+                  </button>
                 </div>
               </div>
             )}

@@ -28,12 +28,17 @@ export async function GET() {
 
   const latest = await getLatestDeployment().catch(() => null);
   const until = await getKeepAliveUntil().catch(() => null);
+  const controlConfigured = isRailwayBridgeControlConfigured();
 
   return NextResponse.json({
-    phase: latest ? "starting" : "stopped",
-    message: latest ? "Waking camera…" : "Camera is offline",
+    phase: latest ? "starting" : controlConfigured ? "starting" : "unconfigured",
+    message: latest
+      ? "Waking camera…"
+      : controlConfigured
+        ? "Starting camera bridge…"
+        : "Set RAILWAY_API_TOKEN, RAILWAY_SERVICE_ID, and RAILWAY_ENVIRONMENT_ID",
     deploymentStatus: latest?.status ?? null,
     keepAliveUntil: until,
-    controlConfigured: isRailwayBridgeControlConfigured(),
+    controlConfigured,
   });
 }
