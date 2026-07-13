@@ -1,0 +1,35 @@
+---
+description: Working Wyze live camera setup via Railway wyze-bridge + Next.js HLS proxy
+alwaysApply: true
+---
+
+# Live camera (confirmed working)
+
+The Birdhouse live feed works end-to-end. Do not "simplify" back to a direct browser→Railway HLS URL — that fails in the browser due to CORS + Basic auth against MediaMTX.
+
+## Architecture
+
+- Wyze Cam → Railway `wyze-bridge` (image `mrlt8/wyze-bridge`)
+- Public domain targets port **8888** (HLS). Port **5000** is WebUI only. Port **8554** RTSP stays private.
+- Next.js proxies HLS at `src/app/api/camera/[...path]/route.ts`
+- Player uses same-origin URL: `/api/camera/bird/stream.m3u8`
+
+## Required env (`.env.local` / Vercel)
+
+```bash
+NEXT_PUBLIC_CAMERA_PROTOCOL=hls
+NEXT_PUBLIC_CAMERA_STREAM_URL=/api/camera/bird/stream.m3u8
+
+CAMERA_UPSTREAM_BASE=https://wyze-bridge-production.up.railway.app
+CAMERA_STREAM_USER=wb
+CAMERA_STREAM_PASSWORD=<WB_API from bridge WebUI — not the Wyze developer API_KEY>
+```
+
+Camera path is `bird` (Wyze name "Bird"). Auth user for streams is `wb`.
+
+Wyze developer `API_ID` / `API_KEY` are Railway-only for the bridge; never `NEXT_PUBLIC_*`.
+
+## Code touchpoints
+
+- `src/lib/camera/*` — HLS player; always-mounted `<video>` for attach
+- `src/app/api/camera/[...path]/route.ts` — server-side Basic auth + upstream fetch
