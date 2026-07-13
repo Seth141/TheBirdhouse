@@ -26,6 +26,7 @@ const trailingTabs = [
 export function BottomNav() {
   const pathname = usePathname();
   const pushToast = useAppStore((s) => s.pushToast);
+  const snapshotHandler = useAppStore((s) => s.snapshotHandler);
 
   const renderTab = (tab: (typeof tabs)[number]) => {
     const active = pathname === tab.href;
@@ -80,7 +81,13 @@ export function BottomNav() {
           <motion.button
             type="button"
             whileTap={{ scale: 0.93 }}
-            onClick={() => pushToast("Snapshot saved to your gallery.")}
+            onClick={() => {
+              if (snapshotHandler) {
+                void snapshotHandler();
+                return;
+              }
+              pushToast("Open Live Cam to capture a snapshot.");
+            }}
             aria-label="Capture a snapshot"
             className="relative -top-5 flex h-16 w-16 items-center justify-center rounded-full border border-white/60 bg-white/50 shadow-[0_10px_30px_rgba(80,80,80,0.14)] backdrop-blur-xl"
           >

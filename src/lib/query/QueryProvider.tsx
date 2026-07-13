@@ -2,6 +2,12 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
+import { useObservationsRealtime } from "./hooks";
+
+function RealtimeBridge() {
+  useObservationsRealtime();
+  return null;
+}
 
 export function QueryProvider({ children }: { children: React.ReactNode }) {
   const [client] = useState(
@@ -17,5 +23,10 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
       })
   );
 
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={client}>
+      <RealtimeBridge />
+      {children}
+    </QueryClientProvider>
+  );
 }

@@ -1,25 +1,51 @@
 "use client";
 
 import Image from "next/image";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { FadeIn } from "@/components/motion/FadeIn";
 import { CameraPlayer } from "@/components/camera/CameraPlayer";
 import { CameraStatusBadge } from "@/components/camera/CameraStatusBadge";
-import { useCameraSource } from "@/lib/camera/useCameraSource";
 import { birdhouseCameraConfig } from "@/lib/camera/createCameraSource";
+import type {
+  CameraConnectionStatus,
+  CameraSnapshot,
+} from "@/lib/camera/types";
 import { useMotionEvents } from "@/lib/query/hooks";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { DownloadIcon, ShareIcon, NestIcon } from "@/components/icons";
 import { LoadingFeather } from "@/components/motion/LoadingFeather";
 
 export default function LiveCameraPage() {
-  const { status, captureSnapshot } = useCameraSource(birdhouseCameraConfig);
+  const [status, setStatus] = useState<CameraConnectionStatus>("idle");
+  const captureRef = useRef<(() => Promise<CameraSnapshot>) | null>(null);
   const pushToast = useAppStore((s) => s.pushToast);
+  const setSnapshotHandler = useAppStore((s) => s.setSnapshotHandler);
   const { data: motionEvents, isLoading } = useMotionEvents();
 
+  const handleStatus = useCallback((next: CameraConnectionStatus) => {
+    setStatus(next);
+  }, []);
+
+  useEffect(() => {
+    setSnapshotHandler(async () => {
+      if (!captureRef.current) {
+        pushToast("Open Live Cam to capture a snapshot.");
+        return;
+      }
+      await captureRef.current();
+      pushToast("Snapshot saved to your gallery.");
+    });
+    return () => setSnapshotHandler(null);
+  }, [pushToast, setSnapshotHandler]);
+
   const handleSnapshot = async () => {
-    await captureSnapshot();
+    if (!captureRef.current) {
+      pushToast("Camera is still connecting…");
+      return;
+    }
+    await captureRef.current();
     pushToast("Snapshot saved to your gallery.");
   };
 
@@ -28,7 +54,12 @@ export default function LiveCameraPage() {
       <div className="space-y-6 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-8 lg:space-y-0 xl:grid-cols-[minmax(0,1fr)_340px] xl:gap-10">
         <FadeIn>
           <GlassCard padding="sm" className="lg:p-4">
-            <CameraPlayer config={birdhouseCameraConfig} variant="full" />
+            <CameraPlayer
+              config={birdhouseCameraConfig}
+              variant="full"
+              onStatusChange={handleStatus}
+              captureRef={captureRef}
+            />
             <div className="flex items-center justify-between px-1 pt-3 lg:pt-4">
               <div className="flex items-center gap-2">
                 <CameraStatusBadge status={status} />

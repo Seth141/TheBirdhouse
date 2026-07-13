@@ -19,6 +19,11 @@ dist
 # env / secrets
 .env
 .env*.local
+!.env.example
+inference-service/.venv/
+inference-service/**/__pycache__/
+*.pt
+*.onnx
 
 # debug / logs
 npm-debug.log*

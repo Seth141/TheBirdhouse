@@ -10,6 +10,9 @@ interface AppState {
   readNotificationIds: string[];
   dismissedNotificationIds: string[];
   toasts: Toast[];
+  /** Live-camera page registers a capture handler for the bottom-nav button. */
+  snapshotHandler: (() => Promise<void>) | null;
+  setSnapshotHandler: (handler: (() => Promise<void>) | null) => void;
   toggleFavorite: (momentId: string) => void;
   isFavorite: (momentId: string) => boolean;
   markAllNotificationsRead: (ids: string[]) => void;
@@ -29,6 +32,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   readNotificationIds: [],
   dismissedNotificationIds: [],
   toasts: [],
+  snapshotHandler: null,
+  setSnapshotHandler: (handler) => set({ snapshotHandler: handler }),
   toggleFavorite: (momentId) =>
     set((state) => ({
       favoriteMomentIds: state.favoriteMomentIds.includes(momentId)

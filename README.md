@@ -57,20 +57,29 @@ public/
 
 ## Camera Integration (Wyze Cam V3)
 
-The UI never talks to a specific stream implementation — everything goes through the `CameraSource` interface in `src/lib/camera/types.ts`. Three providers exist today:
+Browsers cannot play the private RTSP URL used by the inference service. The app
+plays **HLS** from [docker-wyze-bridge](https://github.com/mrlt8/docker-wyze-bridge)
+via a **same-origin Next.js proxy** (`/api/camera/...`) so CORS and Basic auth
+work reliably in the browser.
 
-- `MockCameraSource` — used by default so the app is fully explorable without hardware.
-- `HlsCameraSource` — for a Wyze Cam V3 whose RTSP feed is republished as HLS via a proxy (e.g. [go2rtc](https://github.com/AlexxIT/go2rtc), RTSPtoWeb, or MediaMTX).
-- `MjpegCameraSource` — for MJPEG-style snapshot-stream bridges.
+| Port | Purpose | Public? |
+|------|---------|---------|
+| `8888` | HLS (`.m3u8`) upstream for the proxy | **Yes** |
+| `5000` | Bridge WebUI / dashboard | Optional |
+| `8554` | RTSP for inference on Railway private network | **No** |
 
-To point the app at a real stream, set environment variables (e.g. in `.env.local`):
+Set in `.env.local` (and Vercel):
 
 ```bash
 NEXT_PUBLIC_CAMERA_PROTOCOL=hls
-NEXT_PUBLIC_CAMERA_STREAM_URL=https://your-proxy/birdhouse/stream.m3u8
+NEXT_PUBLIC_CAMERA_STREAM_URL=/api/camera/bird/stream.m3u8
+
+CAMERA_UPSTREAM_BASE=https://your-bridge.up.railway.app
+CAMERA_STREAM_USER=wb
+CAMERA_STREAM_PASSWORD=your-wb-api-key
 ```
 
-`src/lib/camera/createCameraSource.ts` picks the right provider automatically — no component changes required.
+Restart `npm run dev` after changing env vars.
 
 ## Design Tokens
 
@@ -78,7 +87,18 @@ All colors, typography, spacing, radii, shadows, blur, and motion values live in
 
 ## Data Layer
 
-`src/lib/query/hooks.ts` exposes `useStats`, `useMoments`, `useRecordings`, `useMotionEvents`, `useNatureTip`, and `useNotifications`, all backed by mock data in `mockData.ts` with simulated network delay. Swap the `queryFn` implementations for real `fetch` calls when a backend exists — components are already written against these hooks.
+`src/lib/query/hooks.ts` exposes `useStats`, `useMoments`, `useRecordings`, `useMotionEvents`, `useNatureTip`, `useNotifications`, and `useSpeciesGallery`.
+
+When `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` are set, hooks read from Supabase (`observations` / `species`) with Realtime invalidation. Without those env vars, the app falls back to mock data so the UI stays explorable.
+
+Backend pipeline (RTSP → detect → classify → Supabase) lives in `inference-service/`. Schema + RLS live in `supabase/migrations/`.
+
+## Backend (Supabase + Railway)
+
+1. Run `supabase/migrations/20260713000000_init.sql` in the Supabase SQL editor (see `supabase/README.md`).
+2. Deploy [docker-wyze-bridge](https://github.com/mrlt8/docker-wyze-bridge) on Railway (manual — Phase 2).
+3. Deploy `inference-service/` as a second Railway service; point `RTSP_URL` at the private bridge URL and set the Supabase **service role** key.
+4. Set frontend env from `.env.example` and redeploy on Vercel.
 
 ## Accessibility & Performance
 

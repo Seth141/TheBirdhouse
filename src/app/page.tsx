@@ -4,6 +4,7 @@ import { LiveCameraCard } from "@/components/home/LiveCameraCard";
 import { StatsGrid } from "@/components/home/StatsGrid";
 import { RecentMoments } from "@/components/home/RecentMoments";
 import { TipCard } from "@/components/home/TipCard";
+import { PlaylistCard } from "@/components/home/PlaylistCard";
 import { DesktopInsights } from "@/components/home/DesktopInsights";
 import { generateBirdTip } from "@/lib/tips/generateBirdTip";
 
@@ -22,6 +23,7 @@ export default async function HomePage() {
           <StatsGrid />
           <RecentMoments />
           <TipCard tip={tip} />
+          <PlaylistCard />
         </div>
 
         <div className="hidden lg:grid lg:grid-cols-[1.15fr_0.85fr] lg:items-start lg:gap-8 xl:gap-10">
@@ -34,6 +36,7 @@ export default async function HomePage() {
             <LiveCameraCard />
             <StatsGrid />
             <TipCard tip={tip} />
+            <PlaylistCard />
           </aside>
         </div>
       </main>

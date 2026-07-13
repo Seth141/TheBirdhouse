@@ -6,7 +6,6 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { Switch } from "@/components/ui/Switch";
 import { FadeIn } from "@/components/motion/FadeIn";
 import { CameraStatusBadge } from "@/components/camera/CameraStatusBadge";
-import { useCameraSource } from "@/lib/camera/useCameraSource";
 import { birdhouseCameraConfig } from "@/lib/camera/createCameraSource";
 import {
   NotificationIcon,
@@ -44,7 +43,10 @@ function SettingsRow({
 }
 
 export default function SettingsPage() {
-  const { status } = useCameraSource(birdhouseCameraConfig);
+  const streamConfigured =
+    birdhouseCameraConfig.protocol !== "mock" &&
+    Boolean(birdhouseCameraConfig.streamUrl);
+  const status = streamConfigured ? "live" : "idle";
   const [motionAlerts, setMotionAlerts] = useState(true);
   const [dailyDigest, setDailyDigest] = useState(true);
   const [sound, setSound] = useState(false);
@@ -61,7 +63,11 @@ export default function SettingsPage() {
             <SettingsRow
               icon={<CameraIcon size={20} wash="taupe" />}
               title="Birdhouse Cam"
-              description={`${birdhouseCameraConfig.protocol.toUpperCase()} · Wyze Cam V3`}
+              description={
+                streamConfigured
+                  ? `${birdhouseCameraConfig.protocol.toUpperCase()} · stream configured`
+                  : `${birdhouseCameraConfig.protocol.toUpperCase()} · Wyze Cam V3`
+              }
               control={<CameraStatusBadge status={status} />}
             />
           </GlassCard>

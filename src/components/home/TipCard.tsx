@@ -2,7 +2,7 @@
 
 import { GlassCard } from "@/components/ui/GlassCard";
 import { FadeIn } from "@/components/motion/FadeIn";
-import { LeafIcon, ChevronRightIcon } from "@/components/icons";
+import { LeafIcon } from "@/components/icons";
 import type { NatureTip } from "@/lib/query/mockData";
 import { playTipSound, warmSoftSounds } from "@/lib/audio/softSounds";
 
@@ -38,7 +38,6 @@ export function TipCard({ tip }: { tip: NatureTip }) {
               {tip.body}
             </span>
           </span>
-          <ChevronRightIcon size={16} className="shrink-0 lg:scale-110" />
         </GlassCard>
       </button>
     </FadeIn>

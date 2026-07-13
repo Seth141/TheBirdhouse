@@ -440,6 +440,22 @@ export function CloudOfflineIcon(props: IconProps) {
   );
 }
 
+/** Music — soft note for the relax playlist */
+export function MusicIcon(props: IconProps) {
+  return (
+    <IconBase wash="lavender" {...props}>
+      {({ soft, mid, deep }: PastelTone) => (
+        <>
+          <ellipse cx="8.2" cy="17.2" rx="3.2" ry="2.4" fill={mid} />
+          <ellipse cx="16.4" cy="15.4" rx="3.2" ry="2.4" fill={mid} />
+          <path d="M11.4 17.2V5.6c0-.6.4-1 1-1.1l5.2-.8c.7-.1 1.2.4 1.2 1.1v10.6" stroke={deep} strokeWidth="2.2" strokeLinecap="round" fill="none" />
+          <path d="M11.4 8.2 18.8 7" stroke={soft} strokeWidth="2" strokeLinecap="round" />
+        </>
+      )}
+    </IconBase>
+  );
+}
+
 export const Icons = {
   home: HomeIcon,
   liveCamera: LiveCameraIcon,
@@ -459,6 +475,7 @@ export const Icons = {
   leaf: LeafIcon,
   feather: FeatherIcon,
   camera: CameraIcon,
+  music: MusicIcon,
   chevronRight: ChevronRightIcon,
   cloudOffline: CloudOfflineIcon,
 } as const;

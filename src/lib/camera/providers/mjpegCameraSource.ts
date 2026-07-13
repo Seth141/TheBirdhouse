@@ -1,5 +1,6 @@
 import type {
   CameraConnectionStatus,
+  CameraMediaElement,
   CameraSnapshot,
   CameraSource,
   CameraSourceConfig,
@@ -7,10 +8,8 @@ import type {
 } from "../types";
 
 /**
- * MJPEG sources are typically served as a single long-lived `<img>` request
- * (`multipart/x-mixed-replace`). We drive an offscreen `<img>` and paint
- * frames onto the provided `<video>`'s poster/canvas surface via CSS,
- * since `<video>` cannot natively consume MJPEG streams in most browsers.
+ * MJPEG sources are a long-lived `<img>` request (`multipart/x-mixed-replace`).
+ * `CameraPlayer` mounts an `<img>` and passes it to `attach`.
  */
 export class MjpegCameraSource implements CameraSource {
   readonly config: CameraSourceConfig;
@@ -27,25 +26,47 @@ export class MjpegCameraSource implements CameraSource {
     this.listeners.forEach((listener) => listener(status));
   }
 
-  attach(): void {
-    if (!this.config.streamUrl) {
+  private streamUrlWithCredentials(): string {
+    const url = this.config.streamUrl ?? "";
+    const user = this.config.streamUser;
+    const pass = this.config.streamPassword;
+    if (!user || !pass || !url) return url;
+    try {
+      const parsed = new URL(url);
+      parsed.username = user;
+      parsed.password = pass;
+      return parsed.toString();
+    } catch {
+      return url;
+    }
+  }
+
+  attach(media: CameraMediaElement | null): void {
+    if (!media || !(media instanceof HTMLImageElement) || !this.config.streamUrl) {
       this.setStatus("error");
       return;
     }
+
+    this.clearImage();
+    this.img = media;
     this.setStatus("connecting");
-    this.img = new Image();
-    this.img.onload = () => this.setStatus("live");
-    this.img.onerror = () => this.setStatus("error");
-    this.img.src = this.config.streamUrl;
+
+    media.onload = () => this.setStatus("live");
+    media.onerror = () => this.setStatus("error");
+    media.src = this.streamUrlWithCredentials();
   }
 
-  detach(): void {
+  private clearImage(): void {
     if (this.img) {
       this.img.onload = null;
       this.img.onerror = null;
-      this.img.src = "";
+      this.img.removeAttribute("src");
       this.img = null;
     }
+  }
+
+  detach(): void {
+    this.clearImage();
     this.setStatus("idle");
   }
 
@@ -64,10 +85,5 @@ export class MjpegCameraSource implements CameraSource {
       capturedAt: new Date().toISOString(),
       imageSrc: this.config.snapshotUrl ?? this.config.streamUrl ?? "",
     };
-  }
-
-  /** Exposed for the MJPEG-specific renderer to mount the live `<img>`. */
-  getElement(): HTMLImageElement | null {
-    return this.img;
   }
 }

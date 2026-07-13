@@ -15,9 +15,8 @@ export function createCameraSource(config: CameraSourceConfig): CameraSource {
     case "mjpeg":
       return new MjpegCameraSource(config);
     case "rtsp-proxy":
-      // A Wyze Cam V3's RTSP feed should be republished as HLS by a proxy
-      // (go2rtc / RTSPtoWeb / MediaMTX). Once that endpoint exists, point
-      // `streamUrl` at the generated `.m3u8` and switch protocol to "hls".
+      // Wyze RTSP should be republished as HLS (wyze-bridge :8888). Point
+      // `streamUrl` at the `.m3u8` and prefer protocol "hls".
       return new HlsCameraSource(config);
     case "mock":
     default:
@@ -25,13 +24,28 @@ export function createCameraSource(config: CameraSourceConfig): CameraSource {
   }
 }
 
-/** Default camera — swap via env vars once the Wyze Cam V3 proxy is live. */
+function resolveProtocol(): CameraSourceConfig["protocol"] {
+  const raw = process.env.NEXT_PUBLIC_CAMERA_PROTOCOL as
+    | CameraSourceConfig["protocol"]
+    | undefined;
+  if (raw === "hls" || raw === "mjpeg" || raw === "rtsp-proxy" || raw === "mock") {
+    return raw;
+  }
+  // Auto-select HLS when a stream URL is present but protocol is unset.
+  if (process.env.NEXT_PUBLIC_CAMERA_STREAM_URL) return "hls";
+  return "mock";
+}
+
+/** Default camera — swap via env vars once wyze-bridge HLS is public. */
 export const birdhouseCameraConfig: CameraSourceConfig = {
   id: "birdhouse-main",
   name: "Birdhouse Cam",
-  protocol:
-    (process.env.NEXT_PUBLIC_CAMERA_PROTOCOL as CameraSourceConfig["protocol"]) ??
-    "mock",
+  protocol: resolveProtocol(),
   streamUrl: process.env.NEXT_PUBLIC_CAMERA_STREAM_URL,
-  snapshotUrl: "/artwork/nests/nest-eggs.png",
+  snapshotUrl:
+    process.env.NEXT_PUBLIC_CAMERA_SNAPSHOT_URL ?? "/artwork/nests/nest-eggs.png",
+  // Prefer same-origin /api/camera proxy (no client credentials).
+  // Direct upstream + these vars still works if you point STREAM_URL at Railway.
+  streamUser: process.env.NEXT_PUBLIC_CAMERA_STREAM_USER,
+  streamPassword: process.env.NEXT_PUBLIC_CAMERA_STREAM_PASSWORD,
 };

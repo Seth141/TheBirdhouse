@@ -16,14 +16,24 @@ export type CameraConnectionStatus =
   | "offline"
   | "error";
 
+/** Media element passed to `attach` — `<video>` for HLS, `<img>` for MJPEG. */
+export type CameraMediaElement = HTMLVideoElement | HTMLImageElement;
+
 export interface CameraSourceConfig {
   id: string;
   name: string;
   protocol: StreamProtocol;
-  /** Stream URL — .m3u8 for HLS, http snapshot loop for MJPEG, etc. */
+  /** Stream URL — .m3u8 for HLS, multipart MJPEG URL, etc. */
   streamUrl?: string;
   /** Still-frame endpoint used for snapshot capture / poster art. */
   snapshotUrl?: string;
+  /**
+   * Optional Basic-auth credentials for wyze-bridge when WB_AUTH is enabled
+   * (username `wb`, password = WB_API key — or STREAM_AUTH user:pass).
+   * Exposed client-side; rely on the site password gate for access control.
+   */
+  streamUser?: string;
+  streamPassword?: string;
 }
 
 export interface MotionEvent {
@@ -56,7 +66,7 @@ export type CameraStatusListener = (status: CameraConnectionStatus) => void;
  */
 export interface CameraSource {
   readonly config: CameraSourceConfig;
-  attach(video: HTMLVideoElement | null): Promise<void> | void;
+  attach(media: CameraMediaElement | null): Promise<void> | void;
   detach(): void;
   getStatus(): CameraConnectionStatus;
   onStatusChange(listener: CameraStatusListener): () => void;

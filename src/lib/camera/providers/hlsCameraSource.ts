@@ -1,5 +1,6 @@
 import type {
   CameraConnectionStatus,
+  CameraMediaElement,
   CameraSnapshot,
   CameraSource,
   CameraSourceConfig,
@@ -7,12 +8,12 @@ import type {
 } from "../types";
 
 /**
- * HLS.js-backed live stream, intended for a Wyze Cam V3 exposed through an
- * HLS-producing proxy (e.g. RTSPtoWeb, go2rtc, or a custom bridge that
- * republishes the camera's RTSP feed as `.m3u8`).
+ * HLS.js-backed live stream for a Wyze Cam V3 exposed through wyze-bridge
+ * (or go2rtc / MediaMTX) as `.m3u8`.
  *
- * Kept isolated behind the `CameraSource` interface so `CameraPlayer` never
- * needs to know hls.js exists.
+ * Auth: when wyze-bridge has WB_AUTH enabled, set streamUser / streamPassword
+ * (typically user `wb` + WB_API key). Credentials are applied via Basic auth
+ * for hls.js XHR and via a credentialed URL for Safari native HLS.
  */
 export class HlsCameraSource implements CameraSource {
   readonly config: CameraSourceConfig;
@@ -21,6 +22,11 @@ export class HlsCameraSource implements CameraSource {
   private videoEl: HTMLVideoElement | null = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private hls: any = null;
+  private nativeHandlers: {
+    onMeta: () => void;
+    onError: () => void;
+    onPlaying: () => void;
+  } | null = null;
 
   constructor(config: CameraSourceConfig) {
     this.config = config;
@@ -31,20 +37,58 @@ export class HlsCameraSource implements CameraSource {
     this.listeners.forEach((listener) => listener(status));
   }
 
-  async attach(video: HTMLVideoElement | null): Promise<void> {
-    if (!video || !this.config.streamUrl) {
+  private streamUrlWithCredentials(): string {
+    const url = this.config.streamUrl ?? "";
+    const user = this.config.streamUser;
+    const pass = this.config.streamPassword;
+    if (!user || !pass || !url) return url;
+    try {
+      const parsed = new URL(url);
+      parsed.username = user;
+      parsed.password = pass;
+      return parsed.toString();
+    } catch {
+      return url;
+    }
+  }
+
+  private basicAuthHeader(): string | null {
+    const user = this.config.streamUser;
+    const pass = this.config.streamPassword;
+    if (!user || !pass) return null;
+    if (typeof btoa === "undefined") return null;
+    return `Basic ${btoa(`${user}:${pass}`)}`;
+  }
+
+  async attach(media: CameraMediaElement | null): Promise<void> {
+    if (!media || !(media instanceof HTMLVideoElement) || !this.config.streamUrl) {
       this.setStatus("error");
       return;
     }
-    this.videoEl = video;
+
+    this.detachMediaOnly();
+    this.videoEl = media;
+    media.muted = true;
+    media.playsInline = true;
+    media.setAttribute("playsinline", "");
+    media.setAttribute("webkit-playsinline", "");
+    media.autoplay = true;
     this.setStatus("connecting");
 
+    const playUrl = this.streamUrlWithCredentials();
+
     try {
-      const canPlayNative = video.canPlayType("application/vnd.apple.mpegurl");
+      const canPlayNative = media.canPlayType("application/vnd.apple.mpegurl");
       if (canPlayNative) {
-        video.src = this.config.streamUrl;
-        video.addEventListener("loadedmetadata", () => this.setStatus("live"));
-        video.addEventListener("error", () => this.setStatus("error"));
+        const onMeta = () => this.setStatus("live");
+        const onPlaying = () => this.setStatus("live");
+        const onError = () => this.setStatus("error");
+        this.nativeHandlers = { onMeta, onError, onPlaying };
+        media.addEventListener("loadedmetadata", onMeta);
+        media.addEventListener("playing", onPlaying);
+        media.addEventListener("error", onError);
+        media.src = playUrl;
+        media.play().catch(() => undefined);
         return;
       }
 
@@ -54,31 +98,69 @@ export class HlsCameraSource implements CameraSource {
         return;
       }
 
-      this.hls = new Hls({ enableWorker: true, lowLatencyMode: true });
+      const auth = this.basicAuthHeader();
+      this.hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: true,
+        xhrSetup: auth
+          ? (xhr: XMLHttpRequest) => {
+              xhr.setRequestHeader("Authorization", auth);
+            }
+          : undefined,
+      });
       this.hls.loadSource(this.config.streamUrl);
-      this.hls.attachMedia(video);
+      this.hls.attachMedia(media);
       this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
         this.setStatus("live");
-        video.play().catch(() => undefined);
+        media.play().catch(() => undefined);
       });
-      this.hls.on(Hls.Events.ERROR, (_event: unknown, data: { fatal?: boolean }) => {
-        if (data?.fatal) this.setStatus("error");
-      });
+      this.hls.on(
+        Hls.Events.ERROR,
+        (
+          _event: unknown,
+          data: {
+            fatal?: boolean;
+            type?: string;
+          }
+        ) => {
+          if (!data?.fatal || !this.hls) return;
+
+          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+            this.hls.startLoad();
+            return;
+          }
+          if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+            this.hls.recoverMediaError();
+            return;
+          }
+          this.setStatus("error");
+        }
+      );
     } catch {
       this.setStatus("error");
     }
   }
 
-  detach(): void {
+  private detachMediaOnly(): void {
     if (this.hls) {
       this.hls.destroy();
       this.hls = null;
+    }
+    if (this.videoEl && this.nativeHandlers) {
+      this.videoEl.removeEventListener("loadedmetadata", this.nativeHandlers.onMeta);
+      this.videoEl.removeEventListener("playing", this.nativeHandlers.onPlaying);
+      this.videoEl.removeEventListener("error", this.nativeHandlers.onError);
+      this.nativeHandlers = null;
     }
     if (this.videoEl) {
       this.videoEl.removeAttribute("src");
       this.videoEl.load();
       this.videoEl = null;
     }
+  }
+
+  detach(): void {
+    this.detachMediaOnly();
     this.setStatus("idle");
   }
 
@@ -92,7 +174,7 @@ export class HlsCameraSource implements CameraSource {
   }
 
   async captureSnapshot(): Promise<CameraSnapshot> {
-    if (this.videoEl) {
+    if (this.videoEl && this.videoEl.videoWidth > 0) {
       const canvas = document.createElement("canvas");
       canvas.width = this.videoEl.videoWidth || 640;
       canvas.height = this.videoEl.videoHeight || 360;

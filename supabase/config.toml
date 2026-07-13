@@ -1,0 +1,11 @@
+# Minimal Supabase CLI config for local/linked projects.
+# Project URL + keys still come from the Supabase dashboard / .env files.
+
+[project]
+id = "thebirdhouse"
+
+[api]
+enabled = true
+
+[db]
+major_version = 15
