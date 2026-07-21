@@ -121,7 +121,7 @@ export default function GalleryPage() {
         <FadeIn delay={0.08}>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 lg:gap-5 xl:grid-cols-4">
             {visibleMoments.map((moment) => (
-              <div key={moment.id} className="aspect-square w-full lg:aspect-[4/5]">
+              <div key={moment.id} className="aspect-square w-full">
                 <MomentCard moment={moment} size="fill" />
               </div>
             ))}

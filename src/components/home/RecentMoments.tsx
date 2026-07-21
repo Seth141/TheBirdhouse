@@ -36,7 +36,7 @@ export function RecentMoments() {
           </div>
           <div className="hidden gap-4 lg:grid lg:grid-cols-3">
             {moments?.slice(0, 3).map((moment) => (
-              <div key={moment.id} className="aspect-[4/5] w-full">
+              <div key={moment.id} className="aspect-square w-full">
                 <MomentCard moment={moment} size="fill" />
               </div>
             ))}
