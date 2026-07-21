@@ -11,6 +11,7 @@ import type { ObservationWithSpecies, SpeciesRow } from "@/lib/supabase/database
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase/client";
 
 const VISITOR_COLORS = ["#B9CBD8", "#D6E1D5", "#DCD6E8", "#EFD9DD", "#C9D8E4", "#DDE7DC"];
+const UNKNOWN_BIRD_ARTWORK = "/artwork/birds/bluebird-perched.png";
 
 function startOfLocalDay(d = new Date()): Date {
   const x = new Date(d);
@@ -41,7 +42,7 @@ export function observationToMoment(obs: ObservationWithSpecies): Moment {
     id: obs.id,
     title: displayName(obs),
     subtitle: formatMomentSubtitle(obs.observed_at),
-    imageSrc: obs.image_url ?? "/artwork/nests/nest-eggs.png",
+    imageSrc: obs.image_url ?? UNKNOWN_BIRD_ARTWORK,
     timestamp: obs.observed_at,
   };
 }
@@ -52,7 +53,7 @@ export function observationToRecording(obs: ObservationWithSpecies): Recording {
     title: displayName(obs),
     timestamp: obs.observed_at,
     durationSeconds: 0,
-    thumbnailSrc: obs.image_url ?? "/artwork/nests/nest-eggs.png",
+    thumbnailSrc: obs.image_url ?? UNKNOWN_BIRD_ARTWORK,
   };
 }
 
@@ -61,7 +62,7 @@ export function observationToMotionEvent(obs: ObservationWithSpecies): MotionEve
     id: obs.id,
     timestamp: obs.observed_at,
     label: displayName(obs),
-    thumbnailSrc: obs.image_url ?? "/artwork/nests/nest-eggs.png",
+    thumbnailSrc: obs.image_url ?? UNKNOWN_BIRD_ARTWORK,
   };
 }
 
@@ -126,7 +127,7 @@ export async function getRecordings(): Promise<Recording[]> {
 }
 
 export async function getMotionEvents(): Promise<MotionEvent[]> {
-  const rows = await fetchObservations(5, true);
+  const rows = await fetchObservations(5);
   return rows.map(observationToMotionEvent);
 }
 
