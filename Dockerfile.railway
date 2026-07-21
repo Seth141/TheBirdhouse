@@ -5,7 +5,10 @@ USER root
 WORKDIR /bird-inference
 COPY inference-service/requirements.txt ./requirements.txt
 RUN python3 -m venv /opt/bird-venv \
-    && /opt/bird-venv/bin/pip install --no-cache-dir -r requirements.txt
+    && /opt/bird-venv/bin/pip install --no-cache-dir -r requirements.txt \
+    && /opt/bird-venv/bin/pip uninstall -y opencv-python \
+    && /opt/bird-venv/bin/pip install --no-cache-dir \
+        --force-reinstall opencv-python-headless
 
 ENV HF_HOME=/opt/bird-models/huggingface
 RUN /opt/bird-venv/bin/python -c \
