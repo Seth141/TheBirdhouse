@@ -57,11 +57,11 @@ export function MomentLightbox({
           priority
           className="object-contain"
         />
-        <div className="absolute inset-x-0 bottom-0 bg-[#5F7264]/95 px-5 py-4 text-white backdrop-blur-sm">
-          <p className="font-heading text-lg font-medium lg:text-2xl">
+        <div className="absolute inset-x-0 bottom-0 bg-[#4F6655] px-5 py-4 text-white">
+          <p className="font-heading text-xl font-semibold lg:text-2xl">
             {moment.title}
           </p>
-          <p className="text-sm text-white/85">{moment.subtitle}</p>
+          <p className="text-sm text-white">{moment.subtitle}</p>
         </div>
         <button
           ref={closeButtonRef}

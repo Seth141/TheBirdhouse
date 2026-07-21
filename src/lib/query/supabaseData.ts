@@ -11,7 +11,7 @@ import type { ObservationWithSpecies, SpeciesRow } from "@/lib/supabase/database
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase/client";
 
 const VISITOR_COLORS = ["#B9CBD8", "#D6E1D5", "#DCD6E8", "#EFD9DD", "#C9D8E4", "#DDE7DC"];
-const UNKNOWN_BIRD_ARTWORK = "/artwork/birds/bluebird-perched.png";
+const UNKNOWN_BIRD_ARTWORK = "/artwork/birds/bluebird-flying.png";
 
 function startOfLocalDay(d = new Date()): Date {
   const x = new Date(d);

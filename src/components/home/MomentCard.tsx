@@ -28,7 +28,7 @@ export function MomentCard({
         whileTap={{ scale: 0.98 }}
         transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
         className={cn(
-          "glass-card relative aspect-square overflow-hidden rounded-[20px]",
+          "relative aspect-square overflow-hidden rounded-xl border border-white/45 shadow-[0_12px_50px_rgba(80,80,80,0.08)]",
           size === "sm" && "w-28 shrink-0",
           size === "md" && "w-32 shrink-0",
           size === "fill" && "h-full w-full"
@@ -47,9 +47,9 @@ export function MomentCard({
             sizes="(min-width: 1024px) 280px, 140px"
             className="object-cover"
           />
-          <div className="absolute inset-x-0 bottom-0 bg-[#5F7264]/95 px-3 py-2 backdrop-blur-sm">
-            <p className="truncate text-xs font-medium text-white">{moment.title}</p>
-            <p className="truncate text-[10px] text-white/80">{moment.subtitle}</p>
+          <div className="absolute inset-x-0 bottom-0 bg-[#4F6655] px-3 py-2.5">
+            <p className="truncate text-sm font-semibold text-white">{moment.title}</p>
+            <p className="truncate text-xs text-white">{moment.subtitle}</p>
           </div>
         </button>
         <button

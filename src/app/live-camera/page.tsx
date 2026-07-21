@@ -7,11 +7,13 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { FadeIn } from "@/components/motion/FadeIn";
 import { CameraPlayer } from "@/components/camera/CameraPlayer";
 import { CameraStatusBadge } from "@/components/camera/CameraStatusBadge";
+import { MomentLightbox } from "@/components/home/MomentLightbox";
 import { birdhouseCameraConfig } from "@/lib/camera/createCameraSource";
 import { prewarmCameraBridge } from "@/lib/camera/prewarmBridge";
 import type {
   CameraConnectionStatus,
   CameraSnapshot,
+  MotionEvent,
 } from "@/lib/camera/types";
 import { useMotionEvents } from "@/lib/query/hooks";
 import { useAppStore } from "@/lib/store/useAppStore";
@@ -30,10 +32,12 @@ export default function LiveCameraPage() {
   const [bridgePhase, setBridgePhase] = useState<BridgePhase>("starting");
   const [bridgeMessage, setBridgeMessage] = useState("Waking camera…");
   const [controlConfigured, setControlConfigured] = useState(true);
+  const [selectedEvent, setSelectedEvent] = useState<MotionEvent | null>(null);
   const captureRef = useRef<(() => Promise<CameraSnapshot>) | null>(null);
   const pushToast = useAppStore((s) => s.pushToast);
   const setSnapshotHandler = useAppStore((s) => s.setSnapshotHandler);
   const { data: motionEvents, isLoading } = useMotionEvents();
+  const closeEventPreview = useCallback(() => setSelectedEvent(null), []);
 
   const handleStatus = useCallback((next: CameraConnectionStatus) => {
     setStatus(next);
@@ -208,9 +212,20 @@ export default function LiveCameraPage() {
                     padding="sm"
                     className="flex items-center gap-3 lg:gap-4 lg:p-4"
                   >
-                    <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl lg:h-16 lg:w-16 lg:rounded-2xl">
-                      <Image src={event.thumbnailSrc} alt="" fill className="object-cover" />
-                    </span>
+                    <button
+                      type="button"
+                      aria-label={`Enlarge ${event.label}`}
+                      onClick={() => setSelectedEvent(event)}
+                      className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-[#D6E1D5] ring-1 ring-white/70 lg:h-20 lg:w-20"
+                    >
+                      <Image
+                        src={event.thumbnailSrc}
+                        alt={event.label}
+                        fill
+                        sizes="(min-width: 1024px) 80px, 64px"
+                        className="object-cover saturate-125"
+                      />
+                    </button>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-medium text-[#4F545A] lg:text-base">
                         {event.label}
@@ -242,6 +257,24 @@ export default function LiveCameraPage() {
           )}
         </FadeIn>
       </div>
+      {selectedEvent ? (
+        <MomentLightbox
+          moment={{
+            id: selectedEvent.id,
+            title: selectedEvent.label,
+            subtitle: new Date(selectedEvent.timestamp).toLocaleString([], {
+              month: "short",
+              day: "numeric",
+              hour: "numeric",
+              minute: "2-digit",
+            }),
+            imageSrc: selectedEvent.thumbnailSrc,
+            timestamp: selectedEvent.timestamp,
+          }}
+          open
+          onClose={closeEventPreview}
+        />
+      ) : null}
     </AppShell>
   );
 }
