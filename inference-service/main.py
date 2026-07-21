@@ -138,6 +138,10 @@ async def capture_loop(cfg: Settings) -> None:
                 visit.start(now)
                 status.motion_triggers += 1
                 status.last_motion_at = _iso_now()
+                logger.info(
+                    "Motion triggered; collecting bird candidates for %.1fs",
+                    cfg.capture_window_seconds,
+                )
 
             if not visit.active:
                 await asyncio.sleep(0)
@@ -157,11 +161,18 @@ async def capture_loop(cfg: Settings) -> None:
             best = visit.finish()
             next_visit_allowed_at = now + cfg.debounce_seconds
             if best is None:
+                logger.info("Capture window ended without a bird detection")
                 await asyncio.sleep(0)
                 continue
 
             status.last_frame_quality = best.quality
             status.last_frame_sharpness = best.sharpness
+            logger.info(
+                "Selected bird crop detector_conf=%.2f quality=%.2f sharpness=%.1f",
+                best.detection.confidence,
+                best.quality,
+                best.sharpness,
+            )
 
             prediction = await asyncio.to_thread(
                 classifier.classify, best.detection.crop
@@ -172,6 +183,14 @@ async def capture_loop(cfg: Settings) -> None:
             if not prediction.accepted:
                 status.rejected_predictions += 1
                 status.last_label = label
+                logger.info(
+                    "Species prediction rejected reason=%s top_conf=%.2f "
+                    "second=%s second_conf=%.2f",
+                    prediction.rejection_reason,
+                    prediction.confidence,
+                    prediction.second_label or "none",
+                    prediction.second_confidence,
+                )
                 try:
                     await asyncio.to_thread(
                         writer.record_unrecognized,
