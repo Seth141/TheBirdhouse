@@ -57,7 +57,7 @@ export function MomentLightbox({
           priority
           className="object-contain"
         />
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent px-5 pb-5 pt-14 text-white">
+        <div className="absolute inset-x-0 bottom-0 bg-[#5F7264]/95 px-5 py-4 text-white backdrop-blur-sm">
           <p className="font-heading text-lg font-medium lg:text-2xl">
             {moment.title}
           </p>

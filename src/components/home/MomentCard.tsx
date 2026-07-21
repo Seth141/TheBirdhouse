@@ -47,7 +47,7 @@ export function MomentCard({
             sizes="(min-width: 1024px) 280px, 140px"
             className="object-cover"
           />
-          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent p-2">
+          <div className="absolute inset-x-0 bottom-0 bg-[#5F7264]/95 px-3 py-2 backdrop-blur-sm">
             <p className="truncate text-xs font-medium text-white">{moment.title}</p>
             <p className="truncate text-[10px] text-white/80">{moment.subtitle}</p>
           </div>
