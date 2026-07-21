@@ -1,0 +1,9 @@
+.git
+.next
+node_modules
+inference-service/.venv
+**/__pycache__
+*.pyc
+.env
+.env*.local
+npm-debug.log*

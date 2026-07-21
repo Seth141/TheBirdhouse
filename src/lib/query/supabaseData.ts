@@ -41,7 +41,7 @@ export function observationToMoment(obs: ObservationWithSpecies): Moment {
     id: obs.id,
     title: displayName(obs),
     subtitle: formatMomentSubtitle(obs.observed_at),
-    imageSrc: obs.image_url,
+    imageSrc: obs.image_url ?? "/artwork/nests/nest-eggs.png",
     timestamp: obs.observed_at,
   };
 }
@@ -52,7 +52,7 @@ export function observationToRecording(obs: ObservationWithSpecies): Recording {
     title: displayName(obs),
     timestamp: obs.observed_at,
     durationSeconds: 0,
-    thumbnailSrc: obs.image_url,
+    thumbnailSrc: obs.image_url ?? "/artwork/nests/nest-eggs.png",
   };
 }
 
@@ -61,7 +61,7 @@ export function observationToMotionEvent(obs: ObservationWithSpecies): MotionEve
     id: obs.id,
     timestamp: obs.observed_at,
     label: displayName(obs),
-    thumbnailSrc: obs.image_url,
+    thumbnailSrc: obs.image_url ?? "/artwork/nests/nest-eggs.png",
   };
 }
 
@@ -70,24 +70,34 @@ export function observationToNotification(obs: ObservationWithSpecies): AppNotif
   return {
     id: obs.id,
     title: "New visitor",
-    body: `A ${name.toLowerCase()} just stopped by the birdhouse.`,
+    body: `${name} visited the birdhouse.`,
     timestamp: obs.observed_at,
     read: false,
   };
 }
 
-async function fetchObservations(limit = 48): Promise<ObservationWithSpecies[]> {
+async function fetchObservations(
+  limit = 48,
+  imagesOnly = false
+): Promise<ObservationWithSpecies[]> {
   const supabase = getSupabase();
   if (!supabase) return [];
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("observations")
     .select(
-      "id, species_id, detected_label, confidence, image_url, bbox, verified, observed_at, created_at, species:species_id ( id, common_name, scientific_name, total_sightings, first_seen_at )"
+      "id, species_id, detected_label, confidence, image_url, image_path, is_recognized, bbox, verified, observed_at, created_at, species:species_id ( id, common_name, scientific_name, total_sightings, first_seen_at )"
     )
     .order("observed_at", { ascending: false })
     .limit(limit);
 
+  if (imagesOnly) {
+    query = query
+      .eq("is_recognized", true)
+      .not("image_url", "is", null);
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
   return (data ?? []) as ObservationWithSpecies[];
 }
@@ -106,17 +116,17 @@ async function fetchSpecies(): Promise<SpeciesRow[]> {
 }
 
 export async function getMoments(): Promise<Moment[]> {
-  const rows = await fetchObservations(40);
+  const rows = await fetchObservations(5, true);
   return rows.map(observationToMoment);
 }
 
 export async function getRecordings(): Promise<Recording[]> {
-  const rows = await fetchObservations(40);
+  const rows = await fetchObservations(5, true);
   return rows.map(observationToRecording);
 }
 
 export async function getMotionEvents(): Promise<MotionEvent[]> {
-  const rows = await fetchObservations(40);
+  const rows = await fetchObservations(5, true);
   return rows.map(observationToMotionEvent);
 }
 
@@ -283,13 +293,14 @@ export interface SpeciesGalleryItem {
 export async function getSpeciesGallery(): Promise<SpeciesGalleryItem[]> {
   const [species, observations] = await Promise.all([
     fetchSpecies(),
-    fetchObservations(80),
+    fetchObservations(5, true),
   ]);
 
   return species.map((s) => {
     const photos = observations
       .filter((o) => o.species_id === s.id)
-      .map((o) => o.image_url);
+      .map((o) => o.image_url)
+      .filter((url): url is string => url !== null);
     return {
       id: s.id,
       commonName: s.common_name,

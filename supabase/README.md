@@ -2,9 +2,12 @@
 
 ## 1. Apply the migration
 
-In the [Supabase SQL Editor](https://supabase.com/dashboard), paste and run:
+In the [Supabase SQL Editor](https://supabase.com/dashboard), paste and run
+these files in order:
 
 `supabase/migrations/20260713000000_init.sql`
+
+`supabase/migrations/20260720000000_recent_moments_fifo.sql`
 
 Or with the CLI (if installed and linked):
 
@@ -19,6 +22,7 @@ This creates:
 - RLS: public **read**, service-role **write** (service role bypasses RLS)
 - `bird-images` storage bucket (public read)
 - Realtime publication on `observations`
+- atomic five-item FIFO for recognized-bird images
 
 ## 2. Frontend env
 

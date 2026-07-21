@@ -20,11 +20,13 @@ class SupabaseWriter:
         url: str,
         service_role_key: str,
         bucket: str = "bird-images",
+        recent_image_limit: int = 5,
         dry_run: bool = False,
     ) -> None:
         self.url = url.rstrip("/")
         self.service_role_key = service_role_key
         self.bucket = bucket
+        self.recent_image_limit = max(1, recent_image_limit)
         self.dry_run = dry_run
         self._client = None
 
@@ -44,8 +46,10 @@ class SupabaseWriter:
         if self._client is None:
             self.connect()
 
-    def upload_image(self, image_bgr: np.ndarray, *, prefix: str = "obs") -> str:
-        """Encode JPEG, upload to bird-images, return public URL."""
+    def upload_image(
+        self, image_bgr: np.ndarray, *, prefix: str = "obs"
+    ) -> Tuple[str, str]:
+        """Encode JPEG, upload it, and return (public URL, storage path)."""
         ok, buf = cv2.imencode(".jpg", image_bgr, [int(cv2.IMWRITE_JPEG_QUALITY), 90])
         if not ok:
             raise RuntimeError("Failed to encode JPEG")
@@ -55,7 +59,7 @@ class SupabaseWriter:
 
         if self.dry_run:
             logger.info("DRY_RUN upload → %s (%d bytes)", path, len(data))
-            return f"dry-run://{self.bucket}/{path}"
+            return f"dry-run://{self.bucket}/{path}", path
 
         self._ensure()
         assert self._client is not None
@@ -65,7 +69,39 @@ class SupabaseWriter:
             file_options={"content-type": "image/jpeg", "upsert": "false"},
         )
         public = self._client.storage.from_(self.bucket).get_public_url(path)
-        return public
+        return public, path
+
+    def cleanup_pending_images(self) -> int:
+        """Delete queued Storage objects, leaving failures queued for retry."""
+        if self.dry_run:
+            return 0
+
+        self._ensure()
+        assert self._client is not None
+        result = (
+            self._client.table("bird_image_cleanup_queue")
+            .select("storage_path")
+            .order("queued_at")
+            .limit(100)
+            .execute()
+        )
+        removed = 0
+        for row in result.data or []:
+            path = row.get("storage_path")
+            if not path:
+                continue
+            try:
+                self._client.storage.from_(self.bucket).remove([path])
+                (
+                    self._client.table("bird_image_cleanup_queue")
+                    .delete()
+                    .eq("storage_path", path)
+                    .execute()
+                )
+                removed += 1
+            except Exception:
+                logger.exception("Failed to remove queued bird image %s", path)
+        return removed
 
     def upsert_species(self, common_name: str) -> Optional[str]:
         """Insert or increment species; return species id."""
@@ -113,7 +149,9 @@ class SupabaseWriter:
         *,
         detected_label: str,
         confidence: float,
-        image_url: str,
+        image_url: Optional[str],
+        image_path: Optional[str] = None,
+        is_recognized: bool = False,
         species_id: Optional[str] = None,
         bbox: Optional[Dict[str, int]] = None,
     ) -> Optional[str]:
@@ -121,6 +159,8 @@ class SupabaseWriter:
             "detected_label": detected_label,
             "confidence": confidence,
             "image_url": image_url,
+            "image_path": image_path,
+            "is_recognized": is_recognized,
             "species_id": species_id,
             "bbox": bbox,
             "observed_at": datetime.now(timezone.utc).isoformat(),
@@ -135,6 +175,43 @@ class SupabaseWriter:
         result = self._client.table("observations").insert(payload).execute()
         return result.data[0]["id"] if result.data else None
 
+    def enqueue_recognized_observation(
+        self,
+        *,
+        detected_label: str,
+        confidence: float,
+        image_url: str,
+        image_path: str,
+        species_id: Optional[str],
+        bbox: Optional[Dict[str, int]],
+    ) -> Optional[str]:
+        """Atomically append to the recognized-bird FIFO and return row id."""
+        if self.dry_run:
+            logger.info(
+                "DRY_RUN enqueue recognized bird %s (limit=%d)",
+                detected_label,
+                self.recent_image_limit,
+            )
+            return None
+
+        self._ensure()
+        assert self._client is not None
+        result = self._client.rpc(
+            "enqueue_bird_observation",
+            {
+                "p_species_id": species_id,
+                "p_detected_label": detected_label,
+                "p_confidence": confidence,
+                "p_image_url": image_url,
+                "p_image_path": image_path,
+                "p_bbox": bbox,
+                "p_observed_at": datetime.now(timezone.utc).isoformat(),
+                "p_limit": self.recent_image_limit,
+            },
+        ).execute()
+        row = result.data[0] if result.data else {}
+        return row.get("observation_id")
+
     def record_sighting(
         self,
         *,
@@ -143,24 +220,62 @@ class SupabaseWriter:
         image_bgr: np.ndarray,
         bbox: Optional[Tuple[int, int, int, int]] = None,
     ) -> Dict[str, Any]:
-        image_url = self.upload_image(image_bgr)
-        species_id = self.upsert_species(label)
+        image_url, image_path = self.upload_image(image_bgr)
         bbox_json = None
         if bbox is not None:
             x, y, w, h = bbox
             bbox_json = {"x": x, "y": y, "w": w, "h": h}
 
-        obs_id = self.insert_observation(
-            detected_label=label,
-            confidence=confidence,
-            image_url=image_url,
-            species_id=species_id,
-            bbox=bbox_json,
-        )
+        try:
+            species_id = self.upsert_species(label)
+            obs_id = self.enqueue_recognized_observation(
+                detected_label=label,
+                confidence=confidence,
+                image_url=image_url,
+                image_path=image_path,
+                species_id=species_id,
+                bbox=bbox_json,
+            )
+        except Exception:
+            if not self.dry_run:
+                try:
+                    self._ensure()
+                    assert self._client is not None
+                    self._client.storage.from_(self.bucket).remove([image_path])
+                except Exception:
+                    logger.exception("Failed to roll back uploaded image %s", image_path)
+            raise
+
+        self.cleanup_pending_images()
         return {
             "observation_id": obs_id,
             "species_id": species_id,
             "image_url": image_url,
+            "image_path": image_path,
             "label": label,
+            "confidence": confidence,
+        }
+
+    def record_unrecognized(
+        self,
+        *,
+        confidence: float,
+        bbox: Optional[Tuple[int, int, int, int]] = None,
+    ) -> Dict[str, Any]:
+        """Keep lightweight telemetry without adding an image to Recent Moments."""
+        bbox_json = None
+        if bbox is not None:
+            x, y, w, h = bbox
+            bbox_json = {"x": x, "y": y, "w": w, "h": h}
+        obs_id = self.insert_observation(
+            detected_label="Unknown bird",
+            confidence=confidence,
+            image_url=None,
+            image_path=None,
+            bbox=bbox_json,
+        )
+        return {
+            "observation_id": obs_id,
+            "label": "Unknown bird",
             "confidence": confidence,
         }

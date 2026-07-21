@@ -1,0 +1,26 @@
+FROM mrlt8/wyze-bridge:2.10.3
+
+USER root
+
+WORKDIR /bird-inference
+COPY inference-service/requirements.txt ./requirements.txt
+RUN python3 -m venv /opt/bird-venv \
+    && /opt/bird-venv/bin/pip install --no-cache-dir -r requirements.txt
+
+ENV HF_HOME=/opt/bird-models/huggingface
+RUN /opt/bird-venv/bin/python -c \
+    "from transformers import AutoImageProcessor, AutoModelForImageClassification; model='houlette/birdclass-na'; AutoImageProcessor.from_pretrained(model); AutoModelForImageClassification.from_pretrained(model)" \
+    && /opt/bird-venv/bin/python -c \
+    "from ultralytics import YOLO; YOLO('yolov8n.pt')"
+
+COPY inference-service/ ./
+COPY scripts/start-combined-railway.sh /usr/local/bin/start-combined-railway
+RUN chmod +x /usr/local/bin/start-combined-railway
+
+ENV PYTHONUNBUFFERED=1
+ENV RTSP_URL=rtsp://127.0.0.1:8554/bird
+ENV INFERENCE_PORT=8080
+
+EXPOSE 5000 8080 8554 8888
+
+CMD ["/usr/local/bin/start-combined-railway"]

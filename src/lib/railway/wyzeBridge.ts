@@ -20,13 +20,46 @@ function config() {
   const serviceId = process.env.RAILWAY_SERVICE_ID?.trim();
   const environmentId = process.env.RAILWAY_ENVIRONMENT_ID?.trim();
   const idleMinutes = Number(process.env.CAMERA_IDLE_MINUTES ?? "12");
+  const monitoringEnabled = ["1", "true", "yes", "on"].includes(
+    process.env.CAMERA_MONITORING_ENABLED?.trim().toLowerCase() ?? ""
+  );
+  const monitoringStartUtcHour = Number(
+    process.env.CAMERA_MONITORING_START_UTC_HOUR ?? "13"
+  );
+  const monitoringStopUtcHour = Number(
+    process.env.CAMERA_MONITORING_STOP_UTC_HOUR ?? "3"
+  );
   return {
     token,
     serviceId,
     environmentId,
     idleMs: (Number.isFinite(idleMinutes) ? idleMinutes : 12) * 60_000,
+    monitoringEnabled,
+    monitoringStartUtcHour,
+    monitoringStopUtcHour,
     configured: Boolean(token && serviceId && environmentId),
   };
+}
+
+export function isScheduledInferenceActive(now = new Date()): boolean {
+  const {
+    monitoringEnabled,
+    monitoringStartUtcHour,
+    monitoringStopUtcHour,
+  } = config();
+  if (!monitoringEnabled) return false;
+  if (
+    !Number.isFinite(monitoringStartUtcHour) ||
+    !Number.isFinite(monitoringStopUtcHour)
+  ) {
+    return false;
+  }
+
+  const hour = now.getUTCHours();
+  if (monitoringStartUtcHour < monitoringStopUtcHour) {
+    return hour >= monitoringStartUtcHour && hour < monitoringStopUtcHour;
+  }
+  return hour >= monitoringStartUtcHour || hour < monitoringStopUtcHour;
 }
 
 export function isRailwayBridgeControlConfigured(): boolean {
@@ -40,25 +73,40 @@ async function railwayGraphql<T>(
   const { token } = config();
   if (!token) throw new Error("RAILWAY_API_TOKEN is not set");
 
-  const res = await fetch(RAILWAY_API, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ query, variables }),
-    cache: "no-store",
-  });
+  const body = JSON.stringify({ query, variables });
 
-  const json = (await res.json()) as GraphqlResult<T>;
-  if (!res.ok || json.errors?.length) {
-    throw new Error(
+  // Account/workspace tokens use Bearer. Project tokens use Project-Access-Token.
+  const authStyles: Record<string, string>[] = [
+    { Authorization: `Bearer ${token}` },
+    { "Project-Access-Token": token },
+  ];
+
+  let lastError = "Railway API request failed";
+  for (const auth of authStyles) {
+    const res = await fetch(RAILWAY_API, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...auth,
+      },
+      body,
+      cache: "no-store",
+    });
+
+    const json = (await res.json()) as GraphqlResult<T>;
+    if (res.ok && !json.errors?.length && json.data) {
+      return json.data;
+    }
+
+    lastError =
       json.errors?.map((e) => e.message).join("; ") ||
-        `Railway API HTTP ${res.status}`
-    );
+      `Railway API HTTP ${res.status}`;
+
+    // Only fall through to the other auth style on 401/403.
+    if (res.status !== 401 && res.status !== 403) break;
   }
-  if (!json.data) throw new Error("Railway API returned no data");
-  return json.data;
+
+  throw new Error(lastError);
 }
 
 type DeploymentNode = {
@@ -264,6 +312,12 @@ export async function stopBridgeIfIdle(): Promise<{
   const { configured } = config();
   if (!configured) {
     return { stopped: false, reason: "Railway control not configured" };
+  }
+  if (isScheduledInferenceActive()) {
+    return {
+      stopped: false,
+      reason: "Scheduled bird inference is active",
+    };
   }
 
   const until = await getKeepAliveUntil();

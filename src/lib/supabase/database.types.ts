@@ -42,7 +42,9 @@ export interface Database {
           species_id: string | null;
           detected_label: string;
           confidence: number;
-          image_url: string;
+          image_url: string | null;
+          image_path: string | null;
+          is_recognized: boolean;
           bbox: Json | null;
           verified: boolean;
           observed_at: string;
@@ -53,7 +55,9 @@ export interface Database {
           species_id?: string | null;
           detected_label: string;
           confidence: number;
-          image_url: string;
+          image_url?: string | null;
+          image_path?: string | null;
+          is_recognized?: boolean;
           bbox?: Json | null;
           verified?: boolean;
           observed_at?: string;
@@ -64,7 +68,9 @@ export interface Database {
           species_id?: string | null;
           detected_label?: string;
           confidence?: number;
-          image_url?: string;
+          image_url?: string | null;
+          image_path?: string | null;
+          is_recognized?: boolean;
           bbox?: Json | null;
           verified?: boolean;
           observed_at?: string;
@@ -82,7 +88,24 @@ export interface Database {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      enqueue_bird_observation: {
+        Args: {
+          p_species_id: string | null;
+          p_detected_label: string;
+          p_confidence: number;
+          p_image_url: string;
+          p_image_path: string;
+          p_bbox: Json | null;
+          p_observed_at?: string;
+          p_limit?: number;
+        };
+        Returns: {
+          observation_id: string;
+          evicted_image_paths: string[];
+        }[];
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

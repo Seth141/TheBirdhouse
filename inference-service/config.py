@@ -35,12 +35,16 @@ class Settings:
     motion_threshold: float
     detection_confidence_threshold: float
     classification_confidence_threshold: float
+    classification_margin_threshold: float
     debounce_seconds: float
+    capture_window_seconds: float
+    capture_sample_interval_seconds: float
     frame_skip: int
     reconnect_delay_seconds: float
     bird_model_path: str
     species_model_id: str
     enable_species_classifier: bool
+    recent_image_limit: int
     dry_run: bool
     host: str
     port: int
@@ -58,17 +62,25 @@ def load_settings() -> Settings:
             "DETECTION_CONFIDENCE_THRESHOLD", 0.45
         ),
         classification_confidence_threshold=_float(
-            "CLASSIFICATION_CONFIDENCE_THRESHOLD", 0.25
+            "CLASSIFICATION_CONFIDENCE_THRESHOLD", 0.75
+        ),
+        classification_margin_threshold=_float(
+            "CLASSIFICATION_MARGIN_THRESHOLD", 0.15
         ),
         debounce_seconds=_float("DEBOUNCE_SECONDS", 45.0),
+        capture_window_seconds=_float("MIN_CAPTURE_SECONDS", 3.0),
+        capture_sample_interval_seconds=_float(
+            "CAPTURE_SAMPLE_INTERVAL_SECONDS", 0.5
+        ),
         frame_skip=_int("FRAME_SKIP", 2),
         reconnect_delay_seconds=_float("RECONNECT_DELAY_SECONDS", 2.0),
         bird_model_path=os.getenv("BIRD_MODEL_PATH", "yolov8n.pt").strip(),
         species_model_id=os.getenv(
             "SPECIES_MODEL_ID",
-            "chriamue/bird-species-classifier",
+            "houlette/birdclass-na",
         ).strip(),
         enable_species_classifier=_bool("ENABLE_SPECIES_CLASSIFIER", True),
+        recent_image_limit=max(1, _int("RECENT_IMAGE_LIMIT", 5)),
         dry_run=_bool("DRY_RUN", False),
         host=os.getenv("HOST", "0.0.0.0").strip(),
         port=_int("PORT", 8080),

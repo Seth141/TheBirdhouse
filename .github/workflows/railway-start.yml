@@ -1,0 +1,21 @@
+# Dawn start for wyze-bridge — Sonoma County / Rohnert Park daylight window.
+# GitHub Actions cron is always UTC. Pacific is UTC-7 (PDT) or UTC-8 (PST).
+# 13:00 UTC ≈ 06:00 PDT / 05:00 PST (up by summer dawn; slight winter margin).
+name: Railway Morning Start
+
+on:
+  schedule:
+    - cron: "0 13 * * *"
+  workflow_dispatch:
+
+jobs:
+  start:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start combined camera and inference service
+        env:
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+          RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_SERVICE_ID }}
+          RAILWAY_ENVIRONMENT_ID: ${{ secrets.RAILWAY_ENVIRONMENT_ID }}
+        run: node scripts/railway-toggle.js --start

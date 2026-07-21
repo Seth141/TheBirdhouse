@@ -1,0 +1,21 @@
+# Night stop for wyze-bridge — Sonoma County / Rohnert Park daylight window.
+# GitHub Actions cron is always UTC. Pacific is UTC-7 (PDT) or UTC-8 (PST).
+# 03:00 UTC ≈ 20:00 PDT / 19:00 PST (after summer dusk; well after winter sunset).
+name: Railway Night Stop
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  stop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stop combined camera and inference service
+        env:
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+          RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_SERVICE_ID }}
+          RAILWAY_ENVIRONMENT_ID: ${{ secrets.RAILWAY_ENVIRONMENT_ID }}
+        run: node scripts/railway-toggle.js --stop

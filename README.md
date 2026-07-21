@@ -95,9 +95,11 @@ Backend pipeline (RTSP → detect → classify → Supabase) lives in `inference
 
 ## Backend (Supabase + Railway)
 
-1. Run `supabase/migrations/20260713000000_init.sql` in the Supabase SQL editor (see `supabase/README.md`).
-2. Deploy [docker-wyze-bridge](https://github.com/mrlt8/docker-wyze-bridge) on Railway (manual — Phase 2).
-3. Deploy `inference-service/` as a second Railway service; point `RTSP_URL` at the private bridge URL and set the Supabase **service role** key.
+1. Apply the migrations in `supabase/migrations/` in timestamp order.
+2. Connect the existing Railway service to this repository. The root
+   `Dockerfile.railway` runs wyze-bridge and inference in one container.
+3. Preserve the bridge variables/domain on port 8888 and add the Supabase
+   service-role variables from `inference-service/.env.example`.
 4. Set frontend env from `.env.example` and redeploy on Vercel.
 
 ## Accessibility & Performance

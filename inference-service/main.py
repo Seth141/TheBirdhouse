@@ -20,9 +20,11 @@ from fastapi.responses import JSONResponse
 from capture import frame_generator
 from classify_species import SpeciesClassifier
 from config import Settings, load_settings
+from debounce import Debouncer
 from detect_bird import BirdDetector
 from detect_motion import MotionDetector
 from supabase_client import SupabaseWriter
+from visit_capture import VisitCaptureWindow
 
 logging.basicConfig(
     level=logging.INFO,
@@ -46,25 +48,13 @@ class RuntimeStatus:
     motion_triggers: int = 0
     birds_detected: int = 0
     observations_written: int = 0
+    unknown_observations: int = 0
+    rejected_predictions: int = 0
     species_tally: Dict[str, int] = field(default_factory=dict)
     last_error: Optional[str] = None
     debounce_skips: int = 0
-
-
-class Debouncer:
-    """In-memory per-label cooldown — fine for a single Railway instance."""
-
-    def __init__(self, window_seconds: float) -> None:
-        self.window_seconds = window_seconds
-        self._last: Dict[str, float] = {}
-
-    def allow(self, label: str) -> bool:
-        now = time.monotonic()
-        prev = self._last.get(label)
-        if prev is not None and (now - prev) < self.window_seconds:
-            return False
-        self._last[label] = now
-        return True
+    last_frame_quality: Optional[float] = None
+    last_frame_sharpness: Optional[float] = None
 
 
 status = RuntimeStatus()
@@ -86,14 +76,21 @@ async def capture_loop(cfg: Settings) -> None:
     classifier = SpeciesClassifier(
         model_id=cfg.species_model_id,
         confidence_threshold=cfg.classification_confidence_threshold,
+        margin_threshold=cfg.classification_margin_threshold,
         enabled=cfg.enable_species_classifier,
     )
     writer = SupabaseWriter(
         url=cfg.supabase_url,
         service_role_key=cfg.supabase_service_role_key,
+        recent_image_limit=cfg.recent_image_limit,
         dry_run=cfg.dry_run,
     )
     debouncer = Debouncer(cfg.debounce_seconds)
+    visit = VisitCaptureWindow(
+        duration_seconds=cfg.capture_window_seconds,
+        sample_interval_seconds=cfg.capture_sample_interval_seconds,
+    )
+    next_visit_allowed_at = 0.0
 
     # Load heavy models off the event loop.
     await asyncio.to_thread(bird.load)
@@ -101,6 +98,7 @@ async def capture_loop(cfg: Settings) -> None:
         await asyncio.to_thread(classifier.load)
     if not cfg.dry_run:
         await asyncio.to_thread(writer.connect)
+        await asyncio.to_thread(writer.cleanup_pending_images)
 
     logger.info("Capture loop starting (frame_skip=%s)", cfg.frame_skip)
     gen = frame_generator(
@@ -130,30 +128,65 @@ async def capture_loop(cfg: Settings) -> None:
                 await asyncio.sleep(0)
                 continue
 
+            now = time.monotonic()
             motion_result = await asyncio.to_thread(motion.update, frame)
-            if not motion_result.triggered:
+            if (
+                not visit.active
+                and motion_result.triggered
+                and now >= next_visit_allowed_at
+            ):
+                visit.start(now)
+                status.motion_triggers += 1
+                status.last_motion_at = _iso_now()
+
+            if not visit.active:
                 await asyncio.sleep(0)
                 continue
 
-            status.motion_triggers += 1
-            status.last_motion_at = _iso_now()
+            if visit.should_sample(now):
+                detection = await asyncio.to_thread(bird.best, frame)
+                visit.add(detection, now)
+                if detection is not None:
+                    status.birds_detected += 1
+                    status.last_bird_at = _iso_now()
 
-            detection = await asyncio.to_thread(bird.best, frame)
-            if detection is None:
+            if not visit.complete(now):
                 await asyncio.sleep(0)
                 continue
 
-            status.birds_detected += 1
-            status.last_bird_at = _iso_now()
+            best = visit.finish()
+            next_visit_allowed_at = now + cfg.debounce_seconds
+            if best is None:
+                await asyncio.sleep(0)
+                continue
 
-            prediction = await asyncio.to_thread(classifier.classify, detection.crop)
-            label = prediction.label
-            # Prefer classifier confidence when present; otherwise detector score.
-            confidence = (
-                prediction.confidence
-                if prediction.confidence > 0
-                else detection.confidence
+            status.last_frame_quality = best.quality
+            status.last_frame_sharpness = best.sharpness
+
+            prediction = await asyncio.to_thread(
+                classifier.classify, best.detection.crop
             )
+            label = prediction.label
+            confidence = prediction.confidence
+
+            if not prediction.accepted:
+                status.rejected_predictions += 1
+                status.last_label = label
+                try:
+                    await asyncio.to_thread(
+                        writer.record_unrecognized,
+                        confidence=confidence,
+                        bbox=best.detection.bbox,
+                    )
+                    status.unknown_observations += 1
+                    status.observations_written += 1
+                    status.last_observation_at = _iso_now()
+                    status.last_error = None
+                except Exception as exc:
+                    status.last_error = str(exc)
+                    logger.exception("Failed to record uncertain bird observation")
+                await asyncio.sleep(0)
+                continue
 
             if not debouncer.allow(label):
                 status.debounce_skips += 1
@@ -166,8 +199,8 @@ async def capture_loop(cfg: Settings) -> None:
                     writer.record_sighting,
                     label=label,
                     confidence=confidence,
-                    image_bgr=detection.crop,
-                    bbox=detection.bbox,
+                    image_bgr=best.detection.crop,
+                    bbox=best.detection.bbox,
                 )
                 status.observations_written += 1
                 status.last_observation_at = _iso_now()
@@ -233,13 +266,22 @@ def get_status() -> JSONResponse:
         "motion_triggers": status.motion_triggers,
         "birds_detected": status.birds_detected,
         "observations_written": status.observations_written,
+        "unknown_observations": status.unknown_observations,
+        "rejected_predictions": status.rejected_predictions,
         "debounce_skips": status.debounce_skips,
+        "last_frame_quality": status.last_frame_quality,
+        "last_frame_sharpness": status.last_frame_sharpness,
         "species_tally": status.species_tally,
         "last_error": status.last_error,
         "config": {
             "motion_threshold": settings.motion_threshold,
+            "capture_window_seconds": settings.capture_window_seconds,
+            "capture_sample_interval_seconds": settings.capture_sample_interval_seconds,
             "detection_confidence_threshold": settings.detection_confidence_threshold,
+            "classification_confidence_threshold": settings.classification_confidence_threshold,
+            "classification_margin_threshold": settings.classification_margin_threshold,
             "debounce_seconds": settings.debounce_seconds,
+            "recent_image_limit": settings.recent_image_limit,
             "dry_run": settings.dry_run,
             "enable_species_classifier": settings.enable_species_classifier,
             "species_model_id": settings.species_model_id,
