@@ -124,11 +124,12 @@ async function startService(serviceId, environmentId) {
     console.log("No prior deployment found.");
   }
 
-  // Do not restart a healthy running deploy — that only adds cold-start latency.
+  // A stopped Railway deployment can remain recorded as SUCCESS. The morning
+  // job runs after a deliberate overnight stop, so SUCCESS must be redeployed.
+  // Only skip states that are actively starting.
   if (
     latest &&
-    (latest.status === "SUCCESS" ||
-      latest.status === "BUILDING" ||
+    (latest.status === "BUILDING" ||
       latest.status === "DEPLOYING" ||
       latest.status === "QUEUED" ||
       latest.status === "WAITING" ||
@@ -163,17 +164,25 @@ async function main() {
   const serviceId = requireEnv("RAILWAY_SERVICE_ID");
   const environmentId = requireEnv("RAILWAY_ENVIRONMENT_ID");
   const sleeping = isCameraSleeping();
+  const pacificHour = Number(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: PACIFIC_TZ,
+      hour: "numeric",
+      hourCycle: "h23",
+    }).format(new Date())
+  );
 
   if (stop) {
-    // Dual UTC crons cover PST/PDT; only stop when Pacific night has begun.
-    if (!sleeping && !process.env.FORCE_RAILWAY_TOGGLE) {
-      console.log("Still daytime in Pacific — skipping night stop.");
+    // Dual UTC crons cover PST/PDT; only the one landing at 8 PM acts.
+    if (pacificHour !== 20 && !process.env.FORCE_RAILWAY_TOGGLE) {
+      console.log("Not 8 PM Pacific — skipping duplicate night stop.");
       return;
     }
     await stopService(serviceId, environmentId);
   } else if (start) {
-    if (sleeping && !process.env.FORCE_RAILWAY_TOGGLE) {
-      console.log("Still overnight in Pacific — skipping morning start.");
+    // Dual UTC crons cover PST/PDT; only the one landing at 5 AM acts.
+    if ((sleeping || pacificHour !== 5) && !process.env.FORCE_RAILWAY_TOGGLE) {
+      console.log("Not 5 AM Pacific — skipping duplicate morning start.");
       return;
     }
     await startService(serviceId, environmentId);

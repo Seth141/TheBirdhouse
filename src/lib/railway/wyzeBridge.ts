@@ -270,21 +270,21 @@ export async function ensureBridgeAwake(): Promise<{
     };
   }
 
-  // Running or serverless-sleeping: poke HLS (wakes sleep). Do NOT restart a
-  // healthy SUCCESS deploy — that makes wake slower.
-  if (status === "SUCCESS" || status === "SLEEPING") {
+  // Serverless sleeping only needs a request to wake. A SUCCESS record with
+  // no HLS response may be a deployment that was stopped overnight; Railway
+  // leaves the historical deployment status as SUCCESS.
+  if (status === "SLEEPING") {
     void probeHlsReady(2500);
     const until = await touchBridgeKeepAlive();
     return {
       phase: "starting",
       deploymentStatus: status,
-      message:
-        status === "SLEEPING" ? "Waking camera…" : "Connecting to camera…",
+      message: "Waking camera…",
       keepAliveUntil: until,
     };
   }
 
-  // Stopped / removed / crashed — redeploy existing image (no git rebuild).
+  // Stopped, failed, or stale SUCCESS — redeploy existing image (no rebuild).
   await railwayGraphql(
     `mutation ($serviceId: String!, $environmentId: String!) {
       serviceInstanceRedeploy(serviceId: $serviceId, environmentId: $environmentId)
