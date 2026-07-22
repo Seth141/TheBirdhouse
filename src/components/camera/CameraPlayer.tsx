@@ -1,8 +1,16 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState, type MutableRefObject } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import {
+  useEffect,
+  useState,
+  type MutableRefObject,
+} from "react";
+import {
+  AnimatePresence,
+  motion,
+  useAnimationControls,
+} from "framer-motion";
 import { useCameraSource } from "@/lib/camera/useCameraSource";
 import type {
   CameraConnectionStatus,
@@ -13,6 +21,8 @@ import { LoadingFeather } from "@/components/motion/LoadingFeather";
 import { CameraOfflineState } from "@/components/camera/CameraOfflineState";
 import { CameraStatusBadge } from "@/components/camera/CameraStatusBadge";
 import { cn } from "@/lib/utils/cn";
+
+const ease = [0.22, 1, 0.36, 1] as const;
 
 interface CameraPlayerProps {
   config: CameraSourceConfig;
@@ -47,6 +57,7 @@ export function CameraPlayer({
   const isMock = config.protocol === "mock";
   const isMjpeg = config.protocol === "mjpeg";
   const [expanded, setExpanded] = useState(false);
+  const frameControls = useAnimationControls();
   const canExpand = expandable && status === "live";
 
   useEffect(() => {
@@ -68,7 +79,7 @@ export function CameraPlayer({
     document.body.style.overflow = "hidden";
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setExpanded(false);
+      if (event.key === "Escape") void closeExpanded();
     };
     window.addEventListener("keydown", handleKeyDown);
 
@@ -76,12 +87,35 @@ export function CameraPlayer({
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- closeExpanded is stable enough for this effect
   }, [expanded]);
 
   // If the stream drops while enlarged, fold back into the page layout.
   useEffect(() => {
-    if (status !== "live" && expanded) setExpanded(false);
-  }, [status, expanded]);
+    if (status !== "live" && expanded) {
+      setExpanded(false);
+      void frameControls.set({ scale: 1, opacity: 1 });
+    }
+  }, [status, expanded, frameControls]);
+
+  const openExpanded = () => {
+    setExpanded(true);
+    void frameControls.start({
+      scale: [0.94, 1],
+      opacity: [0.85, 1],
+      transition: { duration: 0.48, ease },
+    });
+  };
+
+  const closeExpanded = async () => {
+    await frameControls.start({
+      scale: 0.97,
+      opacity: 0.9,
+      transition: { duration: 0.18, ease },
+    });
+    setExpanded(false);
+    void frameControls.set({ scale: 1, opacity: 1 });
+  };
 
   const frameAspect =
     variant === "card"
@@ -100,26 +134,44 @@ export function CameraPlayer({
         </div>
       )}
 
-      <div
-        className={cn(
-          expanded
-            ? "fixed inset-0 z-[100] flex items-center justify-center bg-[#28313A]/60 p-3 backdrop-blur-sm lg:p-6"
-            : cn("wood-frame", className)
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            key="live-expand-backdrop"
+            className="fixed inset-0 z-[100] bg-[#1A2433]/75 backdrop-blur-[14px]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.35, ease }}
+            onMouseDown={() => void closeExpanded()}
+            aria-hidden
+          />
         )}
-        onMouseDown={
+      </AnimatePresence>
+
+      <motion.div
+        className={cn(
+          "wood-frame",
           expanded
-            ? (event) => {
-                if (event.target === event.currentTarget) setExpanded(false);
+            ? "fixed inset-1 z-[101] flex flex-col sm:inset-2 lg:inset-3 xl:inset-4"
+            : className
+        )}
+        animate={frameControls}
+        initial={false}
+        style={
+          expanded
+            ? {
+                padding: "clamp(18px, 2.4vw, 34px)",
+                boxShadow:
+                  "0 32px 90px rgba(18, 14, 10, 0.48), 0 10px 28px rgba(80, 60, 40, 0.22)",
               }
             : undefined
         }
       >
         <div
           className={cn(
-            "wood-frame-inner relative bg-[#DCE6EC]",
-            expanded
-              ? "aspect-[3/4] h-auto max-h-[min(92vh,100%)] w-full max-w-[min(96vw,72rem)] overflow-hidden rounded-[22px] shadow-2xl lg:aspect-video"
-              : frameAspect,
+            "wood-frame-inner relative min-h-0 bg-[#DCE6EC]",
+            expanded ? "h-full w-full flex-1" : frameAspect,
             canExpand && !expanded && "cursor-zoom-in"
           )}
           role={canExpand && !expanded ? "button" : undefined}
@@ -127,14 +179,15 @@ export function CameraPlayer({
           aria-label={
             canExpand && !expanded ? "Enlarge live camera view" : undefined
           }
+          aria-expanded={expanded}
           onClick={() => {
-            if (canExpand && !expanded) setExpanded(true);
+            if (canExpand && !expanded) openExpanded();
           }}
           onKeyDown={(event) => {
             if (!canExpand || expanded) return;
             if (event.key === "Enter" || event.key === " ") {
               event.preventDefault();
-              setExpanded(true);
+              openExpanded();
             }
           }}
         >
@@ -220,24 +273,31 @@ export function CameraPlayer({
           </AnimatePresence>
 
           {showBadge && (
-            <div className="pointer-events-none absolute left-3 top-3 right-3 z-20 flex items-center justify-between">
+            <div className="pointer-events-none absolute left-3 top-3 right-3 z-20 flex items-center justify-between sm:left-4 sm:top-4">
               <CameraStatusBadge status={status} />
             </div>
           )}
 
-          {expanded && (
-            <button
-              type="button"
-              aria-label="Close enlarged live view"
-              onClick={(event) => {
-                event.stopPropagation();
-                setExpanded(false);
-              }}
-              className="absolute right-3 top-3 z-30 flex h-10 w-10 items-center justify-center rounded-full bg-white/85 text-2xl leading-none text-[#4F545A] shadow-sm backdrop-blur transition-transform hover:scale-105"
-            >
-              <span aria-hidden="true">×</span>
-            </button>
-          )}
+          <AnimatePresence>
+            {expanded && (
+              <motion.button
+                key="close-expanded"
+                type="button"
+                aria-label="Close enlarged live view"
+                initial={{ opacity: 0, scale: 0.85, y: -6 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ delay: 0.14, duration: 0.3, ease }}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  void closeExpanded();
+                }}
+                className="absolute right-3 top-3 z-30 flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-2xl leading-none text-[#4F545A] shadow-[0_10px_28px_rgba(30,24,18,0.28)] backdrop-blur-md transition-transform hover:scale-105 active:scale-95 sm:right-4 sm:top-4"
+              >
+                <span aria-hidden="true">×</span>
+              </motion.button>
+            )}
+          </AnimatePresence>
 
           {canExpand && !expanded && (
             <span className="pointer-events-none absolute bottom-3 right-3 z-20 rounded-full bg-black/35 px-2.5 py-1 text-[10px] font-medium tracking-wide text-white/95 backdrop-blur-sm">
@@ -245,7 +305,7 @@ export function CameraPlayer({
             </span>
           )}
         </div>
-      </div>
+      </motion.div>
     </>
   );
 }
