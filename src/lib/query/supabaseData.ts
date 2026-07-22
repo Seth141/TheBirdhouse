@@ -139,37 +139,28 @@ export async function getNotifications(): Promise<AppNotification[]> {
 export async function getStats(): Promise<DailyStats> {
   const supabase = getSupabase();
   if (!supabase) {
-    return { birdsToday: 0, eggsLaid: 0, visitsToday: 0, totalVisits: 0 };
+    return { birdsToday: 0, eggsLaid: 0, speciesSeen: 0, totalVisits: 0 };
   }
 
   const dayStart = startOfLocalDay().toISOString();
 
-  const [todayRes, totalRes, speciesTodayRes] = await Promise.all([
+  const [todayRes, speciesRes, totalRes] = await Promise.all([
     supabase
       .from("observations")
       .select("id", { count: "exact", head: true })
       .gte("observed_at", dayStart),
+    supabase.from("species").select("id", { count: "exact", head: true }),
     supabase.from("observations").select("id", { count: "exact", head: true }),
-    supabase
-      .from("observations")
-      .select("species_id, detected_label")
-      .gte("observed_at", dayStart),
   ]);
 
   if (todayRes.error) throw todayRes.error;
+  if (speciesRes.error) throw speciesRes.error;
   if (totalRes.error) throw totalRes.error;
-  if (speciesTodayRes.error) throw speciesTodayRes.error;
-
-  const unique = new Set(
-    (speciesTodayRes.data ?? []).map(
-      (r) => r.species_id ?? r.detected_label ?? "unknown"
-    )
-  );
 
   return {
-    birdsToday: unique.size,
+    birdsToday: todayRes.count ?? 0,
     eggsLaid: 0,
-    visitsToday: todayRes.count ?? 0,
+    speciesSeen: speciesRes.count ?? 0,
     totalVisits: totalRes.count ?? 0,
   };
 }

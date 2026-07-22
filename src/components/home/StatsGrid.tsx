@@ -15,7 +15,7 @@ const items: {
 }[] = [
   { key: "birds", label: "Birds Today", Icon: BirdIcon, wash: "dustyBlue", value: (s) => s?.birdsToday },
   { key: "eggs", label: "Eggs Laid", Icon: EggIcon, wash: "sage", value: (s) => s?.eggsLaid },
-  { key: "visits", label: "Visits Today", Icon: NestIcon, wash: "sage", value: (s) => s?.visitsToday },
+  { key: "species", label: "Species Seen", Icon: NestIcon, wash: "sage", value: (s) => s?.speciesSeen },
   { key: "total", label: "Total Visits", Icon: FavoriteIcon, wash: "blush", value: (s) => s?.totalVisits },
 ];
 

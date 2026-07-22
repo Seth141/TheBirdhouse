@@ -9,14 +9,14 @@ import type { MotionEvent, Recording } from "@/lib/camera/types";
 export interface DailyStats {
   birdsToday: number;
   eggsLaid: number;
-  visitsToday: number;
+  speciesSeen: number;
   totalVisits: number;
 }
 
 export const mockStats: DailyStats = {
-  birdsToday: 3,
+  birdsToday: 5,
   eggsLaid: 0,
-  visitsToday: 5,
+  speciesSeen: 3,
   totalVisits: 24,
 };
 
