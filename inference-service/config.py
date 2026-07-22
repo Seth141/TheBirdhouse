@@ -69,7 +69,7 @@ def load_settings() -> Settings:
             "CLASSIFICATION_MARGIN_THRESHOLD", 0.15
         ),
         unknown_min_confidence=_float("UNKNOWN_MIN_CONFIDENCE", 0.20),
-        debounce_seconds=_float("DEBOUNCE_SECONDS", 45.0),
+        debounce_seconds=_float("DEBOUNCE_SECONDS", 60.0),
         capture_window_seconds=_float("MIN_CAPTURE_SECONDS", 3.0),
         capture_sample_interval_seconds=_float(
             "CAPTURE_SAMPLE_INTERVAL_SECONDS", 0.5
