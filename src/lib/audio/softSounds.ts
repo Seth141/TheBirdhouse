@@ -162,23 +162,15 @@ function kickOff(play: () => void) {
   play();
 }
 
-/** Soft chirp + wing flutter for opening Live Cam. */
+/** Single bright peep when tapping Live Cam — distinct from tip / playlist. */
 export function playLiveCamSound() {
   kickOff(() => {
-    playFlutter({ duration: 0.26, volume: 0.03 });
     playChirp({
-      startFreq: 2100,
-      endFreq: 2800,
-      startAt: 0.04,
-      duration: 0.08,
-      volume: 0.032,
-    });
-    playChirp({
-      startFreq: 2400,
-      endFreq: 1700,
-      startAt: 0.14,
+      startFreq: 2850,
+      endFreq: 3600,
+      startAt: 0,
       duration: 0.1,
-      volume: 0.028,
+      volume: 0.036,
     });
   });
 }
