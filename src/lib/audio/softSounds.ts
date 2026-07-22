@@ -9,7 +9,15 @@ export type LiveCamChirpId =
   | "chickadee"
   | "wren-blip"
   | "seed-drop"
-  | "dawn-note";
+  | "dawn-note"
+  | "finch-trill"
+  | "warbler-arc"
+  | "nuthatch-yank"
+  | "swallow-zip"
+  | "owl-hoot"
+  | "rainy-pip"
+  | "crystal-ping"
+  | "meadow-bounce";
 
 export type LiveCamChirpOption = {
   id: LiveCamChirpId;
@@ -47,6 +55,46 @@ export const LIVE_CAM_CHIRPS: LiveCamChirpOption[] = [
     id: "dawn-note",
     name: "Dawn note",
     description: "Warm lower whistle",
+  },
+  {
+    id: "finch-trill",
+    name: "Finch trill",
+    description: "Tiny vibrating flutter",
+  },
+  {
+    id: "warbler-arc",
+    name: "Warbler arc",
+    description: "Long sweet rise and fall",
+  },
+  {
+    id: "nuthatch-yank",
+    name: "Nuthatch yank",
+    description: "Nasal two-tone call",
+  },
+  {
+    id: "swallow-zip",
+    name: "Swallow zip",
+    description: "Fast skyward streak",
+  },
+  {
+    id: "owl-hoot",
+    name: "Owl hoot",
+    description: "Soft low whoo",
+  },
+  {
+    id: "rainy-pip",
+    name: "Rainy pip",
+    description: "Damp little water-drop peep",
+  },
+  {
+    id: "crystal-ping",
+    name: "Crystal ping",
+    description: "Bell-like glassy sparkle",
+  },
+  {
+    id: "meadow-bounce",
+    name: "Meadow bounce",
+    description: "Playful hop of three notes",
   },
 ];
 
@@ -146,6 +194,7 @@ function playChirp({
   duration = 0.09,
   volume = 0.035,
   type = "sine",
+  q = 6,
 }: {
   startFreq: number;
   endFreq: number;
@@ -153,6 +202,7 @@ function playChirp({
   duration?: number;
   volume?: number;
   type?: OscillatorType;
+  q?: number;
 }) {
   const ctx = getAudioContext();
   if (!ctx) return;
@@ -171,7 +221,7 @@ function playChirp({
 
   filter.type = "bandpass";
   filter.frequency.setValueAtTime((startFreq + endFreq) / 2, now);
-  filter.Q.setValueAtTime(6, now);
+  filter.Q.setValueAtTime(q, now);
 
   gain.gain.setValueAtTime(0.0001, now);
   gain.gain.exponentialRampToValueAtTime(volume, now + 0.012);
@@ -183,6 +233,132 @@ function playChirp({
 
   osc.start(now);
   osc.stop(now + duration + 0.02);
+}
+
+/** Vibrato trill — frequency wobbles like a tiny finch. */
+function playTrill({
+  centerFreq,
+  depth = 180,
+  rate = 28,
+  duration = 0.16,
+  volume = 0.03,
+  startAt = 0,
+}: {
+  centerFreq: number;
+  depth?: number;
+  rate?: number;
+  duration?: number;
+  volume?: number;
+  startAt?: number;
+}) {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  const now = ctx.currentTime + startAt;
+  const osc = ctx.createOscillator();
+  const lfo = ctx.createOscillator();
+  const lfoGain = ctx.createGain();
+  const gain = ctx.createGain();
+  const filter = ctx.createBiquadFilter();
+
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(centerFreq, now);
+
+  lfo.type = "sine";
+  lfo.frequency.setValueAtTime(rate, now);
+  lfoGain.gain.setValueAtTime(depth, now);
+  lfo.connect(lfoGain);
+  lfoGain.connect(osc.frequency);
+
+  filter.type = "bandpass";
+  filter.frequency.setValueAtTime(centerFreq, now);
+  filter.Q.setValueAtTime(8, now);
+
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(volume, now + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+  osc.connect(filter);
+  filter.connect(gain);
+  gain.connect(ctx.destination);
+
+  osc.start(now);
+  lfo.start(now);
+  osc.stop(now + duration + 0.02);
+  lfo.stop(now + duration + 0.02);
+}
+
+/** Soft harmonic stack for glassy / owl-like tones. */
+function playHarmonicTone({
+  fundamental,
+  endFreq,
+  duration = 0.18,
+  volume = 0.028,
+  startAt = 0,
+  type = "sine" as OscillatorType,
+}: {
+  fundamental: number;
+  endFreq: number;
+  duration?: number;
+  volume?: number;
+  startAt?: number;
+  type?: OscillatorType;
+}) {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  const now = ctx.currentTime + startAt;
+  const master = ctx.createGain();
+  master.gain.setValueAtTime(0.0001, now);
+  master.gain.exponentialRampToValueAtTime(volume, now + 0.02);
+  master.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+  master.connect(ctx.destination);
+
+  for (const [mult, level] of [
+    [1, 1],
+    [2, 0.28],
+    [3, 0.12],
+  ] as const) {
+    const osc = ctx.createOscillator();
+    osc.type = type;
+    osc.frequency.setValueAtTime(fundamental * mult, now);
+    osc.frequency.exponentialRampToValueAtTime(
+      Math.max(endFreq * mult, 1),
+      now + duration
+    );
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(level, now);
+    osc.connect(g);
+    g.connect(master);
+    osc.start(now);
+    osc.stop(now + duration + 0.02);
+  }
+}
+
+/** Soft delayed echo of a chirp. */
+function playEchoChirp({
+  startFreq,
+  endFreq,
+  duration = 0.08,
+  volume = 0.032,
+  echoDelay = 0.1,
+  echoVolume = 0.45,
+}: {
+  startFreq: number;
+  endFreq: number;
+  duration?: number;
+  volume?: number;
+  echoDelay?: number;
+  echoVolume?: number;
+}) {
+  playChirp({ startFreq, endFreq, duration, volume });
+  playChirp({
+    startFreq: startFreq * 0.96,
+    endFreq: endFreq * 0.96,
+    startAt: echoDelay,
+    duration: duration * 0.9,
+    volume: volume * echoVolume,
+  });
 }
 
 function playFlutter({
@@ -295,6 +471,110 @@ function playChirpPreset(id: LiveCamChirpId) {
         duration: 0.16,
         volume: 0.03,
         type: "triangle",
+      });
+      return;
+    case "finch-trill":
+      playTrill({
+        centerFreq: 2700,
+        depth: 220,
+        rate: 32,
+        duration: 0.17,
+        volume: 0.03,
+      });
+      return;
+    case "warbler-arc":
+      playChirp({
+        startFreq: 1800,
+        endFreq: 3200,
+        duration: 0.1,
+        volume: 0.03,
+        type: "triangle",
+      });
+      playChirp({
+        startFreq: 3200,
+        endFreq: 1600,
+        startAt: 0.1,
+        duration: 0.14,
+        volume: 0.028,
+        type: "triangle",
+      });
+      return;
+    case "nuthatch-yank":
+      playChirp({
+        startFreq: 1600,
+        endFreq: 1200,
+        duration: 0.07,
+        volume: 0.034,
+        type: "sawtooth",
+        q: 3.5,
+      });
+      playChirp({
+        startFreq: 1500,
+        endFreq: 1100,
+        startAt: 0.09,
+        duration: 0.08,
+        volume: 0.03,
+        type: "sawtooth",
+        q: 3.5,
+      });
+      return;
+    case "swallow-zip":
+      playChirp({
+        startFreq: 1200,
+        endFreq: 4800,
+        duration: 0.09,
+        volume: 0.034,
+        q: 9,
+      });
+      return;
+    case "owl-hoot":
+      playHarmonicTone({
+        fundamental: 420,
+        endFreq: 380,
+        duration: 0.28,
+        volume: 0.034,
+        type: "sine",
+      });
+      return;
+    case "rainy-pip":
+      playEchoChirp({
+        startFreq: 2400,
+        endFreq: 1900,
+        duration: 0.07,
+        volume: 0.03,
+        echoDelay: 0.11,
+        echoVolume: 0.4,
+      });
+      return;
+    case "crystal-ping":
+      playHarmonicTone({
+        fundamental: 2100,
+        endFreq: 2600,
+        duration: 0.2,
+        volume: 0.026,
+        type: "sine",
+      });
+      return;
+    case "meadow-bounce":
+      playChirp({
+        startFreq: 2000,
+        endFreq: 2600,
+        duration: 0.05,
+        volume: 0.03,
+      });
+      playChirp({
+        startFreq: 2300,
+        endFreq: 3000,
+        startAt: 0.08,
+        duration: 0.05,
+        volume: 0.028,
+      });
+      playChirp({
+        startFreq: 2600,
+        endFreq: 1800,
+        startAt: 0.16,
+        duration: 0.07,
+        volume: 0.026,
       });
       return;
   }
