@@ -77,15 +77,15 @@ class BirdDetector:
             x2, y2 = min(w, x2), min(h, y2)
             if x2 <= x1 or y2 <= y1:
                 continue
-            # Generous padding so Recent Moments show the birdhouse, not a
-            # face-cropped bird. Classifiers still handle this much context.
-            pad_x = max(16, int((x2 - x1) * 0.55))
-            pad_y = max(16, int((y2 - y1) * 0.55))
-            x1 = max(0, x1 - pad_x)
-            y1 = max(0, y1 - pad_y)
-            x2 = min(w, x2 + pad_x)
-            y2 = min(h, y2 + pad_y)
-            crop = frame[y1:y2, x1:x2].copy()
+            # Keep the tight detector box; VisitCaptureWindow builds a wide
+            # gallery crop from the full frame at finish time.
+            pad_x = max(8, int((x2 - x1) * 0.25))
+            pad_y = max(8, int((y2 - y1) * 0.25))
+            cx1 = max(0, x1 - pad_x)
+            cy1 = max(0, y1 - pad_y)
+            cx2 = min(w, x2 + pad_x)
+            cy2 = min(h, y2 + pad_y)
+            crop = frame[cy1:cy2, cx1:cx2].copy()
             detections.append(
                 BirdDetection(
                     confidence=conf,

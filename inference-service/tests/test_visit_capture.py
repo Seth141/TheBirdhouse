@@ -6,11 +6,11 @@ from detect_bird import BirdDetection
 from visit_capture import VisitCaptureWindow
 
 
-def detection(confidence: float, crop: np.ndarray) -> BirdDetection:
+def detection(confidence: float, crop: np.ndarray, bbox=None) -> BirdDetection:
     height, width = crop.shape[:2]
     return BirdDetection(
         confidence=confidence,
-        bbox=(0, 0, width, height),
+        bbox=bbox or (0, 0, width, height),
         crop=crop,
     )
 
@@ -46,7 +46,25 @@ class VisitCaptureWindowTests(unittest.TestCase):
         self.assertGreater(best.sharpness, 0)
         self.assertEqual(best.detection.confidence, 0.78)
 
-    def test_uses_expanded_motion_crop_when_yolo_misses(self):
+    def test_builds_wide_gallery_image_from_full_frame(self):
+        window = VisitCaptureWindow(3.0, 0.5)
+        window.start(0.0)
+        frame = np.full((240, 320, 3), 40, dtype=np.uint8)
+        frame[100:140, 140:180] = 200
+        crop = frame[100:140, 140:180].copy()
+
+        window.add(detection(0.9, crop, bbox=(140, 100, 40, 40)), 0.0, frame=frame)
+        best = window.finish()
+
+        self.assertIsNotNone(best)
+        assert best is not None
+        self.assertIsNotNone(best.gallery_image)
+        assert best.gallery_image is not None
+        # Gallery image should include far more than the 40x40 bird box.
+        self.assertGreater(best.gallery_image.shape[1], 120)
+        self.assertGreater(best.gallery_image.shape[0], 90)
+
+    def test_uses_motion_fallback_when_yolo_misses(self):
         window = VisitCaptureWindow(3.0, 0.5)
         window.start(0.0)
         checker = np.indices((240, 320)).sum(axis=0) % 2
@@ -63,15 +81,14 @@ class VisitCaptureWindowTests(unittest.TestCase):
         assert best is not None
         self.assertEqual(best.source, "motion")
         self.assertEqual(best.detection.confidence, 0.0)
-        # Motion crops are padded generously for gallery context.
-        self.assertGreater(best.detection.bbox[2], 80)
+        self.assertIsNotNone(best.gallery_image)
 
     def test_prefers_yolo_candidate_over_motion_fallback(self):
         window = VisitCaptureWindow(3.0, 0.5)
         window.start(0.0)
         frame = np.full((200, 200, 3), 127, dtype=np.uint8)
         window.add_motion_candidate(frame, (50, 50, 40, 40))
-        window.add(detection(0.30, frame[40:140, 40:140]), 0.5)
+        window.add(detection(0.30, frame[40:140, 40:140]), 0.5, frame=frame)
 
         best = window.finish()
 

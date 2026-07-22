@@ -167,7 +167,7 @@ async def capture_loop(cfg: Settings) -> None:
 
             if visit.should_sample(now):
                 detection = await asyncio.to_thread(bird.best, frame)
-                visit.add(detection, now)
+                visit.add(detection, now, frame=frame)
                 if detection is not None:
                     status.birds_detected += 1
                     status.last_bird_at = _iso_now()
@@ -241,11 +241,15 @@ async def capture_loop(cfg: Settings) -> None:
                 continue
 
             try:
+                # Upload the wide feeder-context crop, not the tight classify crop.
+                moment_image = best.gallery_image
+                if moment_image is None or moment_image.size == 0:
+                    moment_image = best.detection.crop
                 result = await asyncio.to_thread(
                     writer.record_sighting,
                     label=label,
                     confidence=confidence,
-                    image_bgr=best.detection.crop,
+                    image_bgr=moment_image,
                     bbox=best.detection.bbox,
                 )
                 status.observations_written += 1

@@ -47,13 +47,13 @@ export function MomentLightbox({
         role="dialog"
         aria-modal="true"
         aria-label={moment.title}
-        className="relative aspect-[3/4] h-auto max-h-[75vh] w-[min(75vw,28rem)] overflow-hidden rounded-[28px] bg-[#3F5244] shadow-2xl"
+        className="relative aspect-[4/3] h-auto max-h-[75vh] w-[min(92vw,40rem)] overflow-hidden rounded-[28px] bg-[#3F5244] shadow-2xl"
       >
         <Image
           src={moment.imageSrc}
           alt={moment.title}
           fill
-          sizes="(min-width: 1024px) 28rem, 75vw"
+          sizes="(min-width: 1024px) 40rem, 92vw"
           priority
           className="object-contain object-center"
         />

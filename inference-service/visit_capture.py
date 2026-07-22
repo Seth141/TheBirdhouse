@@ -9,6 +9,7 @@ import cv2
 import numpy as np
 
 from detect_bird import BBox, BirdDetection
+from frame_crop import classify_crop, gallery_crop
 
 
 @dataclass
@@ -17,6 +18,8 @@ class BestBirdFrame:
     quality: float
     sharpness: float
     source: str = "yolo"
+    frame: Optional[np.ndarray] = None
+    gallery_image: Optional[np.ndarray] = None
 
 
 class VisitCaptureWindow:
@@ -48,7 +51,12 @@ class VisitCaptureWindow:
             or (now - self.last_sample_at) >= self.sample_interval_seconds
         )
 
-    def add(self, detection: Optional[BirdDetection], now: float) -> None:
+    def add(
+        self,
+        detection: Optional[BirdDetection],
+        now: float,
+        frame: Optional[np.ndarray] = None,
+    ) -> None:
         self.last_sample_at = now
         if detection is None or detection.crop.size == 0:
             return
@@ -67,6 +75,7 @@ class VisitCaptureWindow:
             detection=detection,
             quality=quality,
             sharpness=sharpness,
+            frame=None if frame is None else frame.copy(),
         )
         if self.best is None or candidate.quality > self.best.quality:
             self.best = candidate
@@ -91,29 +100,21 @@ class VisitCaptureWindow:
         if aspect > 4.0 or aspect < 0.2:
             return
 
-        pad_x = max(32, int(width * 1.1))
-        pad_y = max(32, int(height * 1.1))
-        x1 = max(0, x - pad_x)
-        y1 = max(0, y - pad_y)
-        x2 = min(frame_width, x + width + pad_x)
-        y2 = min(frame_height, y + height + pad_y)
-        if x2 <= x1 or y2 <= y1:
-            return
-
-        crop = frame[y1:y2, x1:x2].copy()
+        crop = classify_crop(frame, bbox, pad_scale=0.8)
         gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
         sharpness = float(cv2.Laplacian(gray, cv2.CV_64F).var())
-        area_bonus = min(((x2 - x1) * (y2 - y1)) / 100_000.0, 1.0)
+        area_bonus = min((crop.shape[1] * crop.shape[0]) / 100_000.0, 1.0)
         quality = min(sharpness / 500.0, 1.0) * 0.8 + area_bonus * 0.2
         candidate = BestBirdFrame(
             detection=BirdDetection(
                 confidence=0.0,
-                bbox=(x1, y1, x2 - x1, y2 - y1),
+                bbox=bbox,
                 crop=crop,
             ),
             quality=quality,
             sharpness=sharpness,
             source="motion",
+            frame=frame.copy(),
         )
         if self.fallback is None or candidate.quality > self.fallback.quality:
             self.fallback = candidate
@@ -125,6 +126,17 @@ class VisitCaptureWindow:
 
     def finish(self) -> Optional[BestBirdFrame]:
         best = self.best or self.fallback
+        if best is not None and best.frame is not None:
+            best.gallery_image = gallery_crop(best.frame, best.detection.bbox)
+            # Prefer the wider gallery image for any downstream display upload.
+            best.detection = BirdDetection(
+                confidence=best.detection.confidence,
+                bbox=best.detection.bbox,
+                crop=best.detection.crop,
+            )
+        elif best is not None:
+            best.gallery_image = best.detection.crop
+
         self.started_at = None
         self.last_sample_at = None
         self.best = None

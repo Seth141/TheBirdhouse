@@ -28,10 +28,11 @@ export function MomentCard({
         whileTap={{ scale: 0.98 }}
         transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
         className={cn(
-          // Portrait frame matches typical bird crops and stays uniform.
-          "relative aspect-[3/4] overflow-hidden rounded-xl bg-[#3F5244] shadow-[0_12px_50px_rgba(80,80,80,0.08)]",
-          size === "sm" && "w-28 shrink-0",
-          size === "md" && "w-36 shrink-0",
+          // Landscape matches the camera / feeder stills so cards fill evenly
+          // without tall letterboxing or face-only portrait crops.
+          "relative aspect-[4/3] overflow-hidden rounded-xl bg-[#3F5244] shadow-[0_12px_50px_rgba(80,80,80,0.08)]",
+          size === "sm" && "w-36 shrink-0",
+          size === "md" && "w-52 shrink-0",
           size === "fill" && "h-full w-full"
         )}
       >
@@ -39,7 +40,7 @@ export function MomentCard({
           src={moment.imageSrc}
           alt={moment.title}
           fill
-          sizes="(min-width: 1024px) 280px, 144px"
+          sizes="(min-width: 1024px) 360px, 208px"
           className="object-contain object-center"
         />
 
