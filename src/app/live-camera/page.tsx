@@ -19,6 +19,7 @@ import { useMotionEvents } from "@/lib/query/hooks";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { DownloadIcon, ShareIcon, NestIcon } from "@/components/icons";
 import { LoadingFeather } from "@/components/motion/LoadingFeather";
+import { CameraSleepingState } from "@/components/camera/CameraSleepingState";
 
 type BridgePhase =
   | "ready"
@@ -138,12 +139,18 @@ export default function LiveCameraPage() {
                 onStatusChange={handleStatus}
                 captureRef={captureRef}
               />
+            ) : bridgePhase === "stopped" ? (
+              <div className="wood-frame">
+                <div className="wood-frame-inner relative aspect-[3/4] overflow-hidden bg-[#1A2433] lg:aspect-video">
+                  <CameraSleepingState />
+                </div>
+              </div>
             ) : (
               <div className="wood-frame">
                 <div className="wood-frame-inner relative flex aspect-[3/4] flex-col items-center justify-center gap-4 bg-[#EEF6FB] px-6 text-center lg:aspect-video">
                   <LoadingFeather
                     label={
-                      bridgePhase === "unconfigured" || bridgePhase === "stopped"
+                      bridgePhase === "unconfigured"
                         ? "Camera bridge is offline"
                         : "Waking camera…"
                     }
