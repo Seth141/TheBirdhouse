@@ -21,6 +21,7 @@ export default async function HomePage() {
           <Hero />
           <LiveCameraCard />
           <StatsGrid />
+          <DesktopInsights />
           <RecentMoments />
           <TipCard tip={tip} />
           <PlaylistCard />
