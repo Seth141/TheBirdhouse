@@ -224,11 +224,19 @@ function VisitorDonut({
             />
           ))}
         </svg>
-        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+        <div
+          className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center overflow-hidden text-center"
+          style={{ padding: stroke + 6 }}
+        >
           <span className="font-heading text-2xl font-medium leading-none text-[#4F545A]">
             {top.value}%
           </span>
-          <span className="mt-1 text-[10px] text-[#8A8F94]">{top.label}</span>
+          <span
+            className="mt-1 line-clamp-2 w-full break-words text-[9px] leading-tight text-[#8A8F94]"
+            title={top.label}
+          >
+            {top.label}
+          </span>
         </div>
       </div>
 
