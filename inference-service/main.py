@@ -147,6 +147,9 @@ async def capture_loop(cfg: Settings) -> None:
                 await asyncio.sleep(0)
                 continue
 
+            if motion_result.triggered:
+                visit.add_motion_candidate(frame, motion_result.contour_bbox)
+
             if visit.should_sample(now):
                 detection = await asyncio.to_thread(bird.best, frame)
                 visit.add(detection, now)
@@ -159,16 +162,19 @@ async def capture_loop(cfg: Settings) -> None:
                 continue
 
             best = visit.finish()
-            next_visit_allowed_at = now + cfg.debounce_seconds
             if best is None:
+                next_visit_allowed_at = now + min(3.0, cfg.debounce_seconds)
                 logger.info("Capture window ended without a bird detection")
                 await asyncio.sleep(0)
                 continue
 
+            next_visit_allowed_at = now + cfg.debounce_seconds
             status.last_frame_quality = best.quality
             status.last_frame_sharpness = best.sharpness
             logger.info(
-                "Selected bird crop detector_conf=%.2f quality=%.2f sharpness=%.1f",
+                "Selected bird crop source=%s detector_conf=%.2f "
+                "quality=%.2f sharpness=%.1f",
+                best.source,
                 best.detection.confidence,
                 best.quality,
                 best.sharpness,
@@ -191,19 +197,25 @@ async def capture_loop(cfg: Settings) -> None:
                     prediction.second_label or "none",
                     prediction.second_confidence,
                 )
-                try:
-                    await asyncio.to_thread(
-                        writer.record_unrecognized,
-                        confidence=confidence,
-                        bbox=best.detection.bbox,
+                if confidence >= cfg.unknown_min_confidence:
+                    try:
+                        await asyncio.to_thread(
+                            writer.record_unrecognized,
+                            confidence=confidence,
+                            bbox=best.detection.bbox,
+                        )
+                        status.unknown_observations += 1
+                        status.observations_written += 1
+                        status.last_observation_at = _iso_now()
+                        status.last_error = None
+                    except Exception as exc:
+                        status.last_error = str(exc)
+                        logger.exception("Failed to record uncertain bird observation")
+                else:
+                    logger.info(
+                        "Discarding weak unknown prediction below %.2f",
+                        cfg.unknown_min_confidence,
                     )
-                    status.unknown_observations += 1
-                    status.observations_written += 1
-                    status.last_observation_at = _iso_now()
-                    status.last_error = None
-                except Exception as exc:
-                    status.last_error = str(exc)
-                    logger.exception("Failed to record uncertain bird observation")
                 await asyncio.sleep(0)
                 continue
 
@@ -299,6 +311,7 @@ def get_status() -> JSONResponse:
             "detection_confidence_threshold": settings.detection_confidence_threshold,
             "classification_confidence_threshold": settings.classification_confidence_threshold,
             "classification_margin_threshold": settings.classification_margin_threshold,
+            "unknown_min_confidence": settings.unknown_min_confidence,
             "debounce_seconds": settings.debounce_seconds,
             "recent_image_limit": settings.recent_image_limit,
             "dry_run": settings.dry_run,

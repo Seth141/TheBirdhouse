@@ -46,6 +46,38 @@ class VisitCaptureWindowTests(unittest.TestCase):
         self.assertGreater(best.sharpness, 0)
         self.assertEqual(best.detection.confidence, 0.78)
 
+    def test_uses_expanded_motion_crop_when_yolo_misses(self):
+        window = VisitCaptureWindow(3.0, 0.5)
+        window.start(0.0)
+        checker = np.indices((240, 320)).sum(axis=0) % 2
+        frame = np.repeat(
+            (checker * 255).astype(np.uint8)[:, :, None],
+            3,
+            axis=2,
+        )
+
+        window.add_motion_candidate(frame, (120, 80, 40, 50))
+        best = window.finish()
+
+        self.assertIsNotNone(best)
+        assert best is not None
+        self.assertEqual(best.source, "motion")
+        self.assertEqual(best.detection.confidence, 0.0)
+        self.assertGreater(best.detection.bbox[2], 40)
+
+    def test_prefers_yolo_candidate_over_motion_fallback(self):
+        window = VisitCaptureWindow(3.0, 0.5)
+        window.start(0.0)
+        frame = np.full((200, 200, 3), 127, dtype=np.uint8)
+        window.add_motion_candidate(frame, (50, 50, 40, 40))
+        window.add(detection(0.30, frame[40:140, 40:140]), 0.5)
+
+        best = window.finish()
+
+        self.assertIsNotNone(best)
+        assert best is not None
+        self.assertEqual(best.source, "yolo")
+
 
 if __name__ == "__main__":
     unittest.main()

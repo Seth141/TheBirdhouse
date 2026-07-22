@@ -6,8 +6,9 @@ from dataclasses import dataclass
 from typing import Optional
 
 import cv2
+import numpy as np
 
-from detect_bird import BirdDetection
+from detect_bird import BBox, BirdDetection
 
 
 @dataclass
@@ -15,6 +16,7 @@ class BestBirdFrame:
     detection: BirdDetection
     quality: float
     sharpness: float
+    source: str = "yolo"
 
 
 class VisitCaptureWindow:
@@ -26,6 +28,7 @@ class VisitCaptureWindow:
         self.started_at: Optional[float] = None
         self.last_sample_at: Optional[float] = None
         self.best: Optional[BestBirdFrame] = None
+        self.fallback: Optional[BestBirdFrame] = None
 
     @property
     def active(self) -> bool:
@@ -35,6 +38,7 @@ class VisitCaptureWindow:
         self.started_at = now
         self.last_sample_at = None
         self.best = None
+        self.fallback = None
 
     def should_sample(self, now: float) -> bool:
         if not self.active:
@@ -67,14 +71,56 @@ class VisitCaptureWindow:
         if self.best is None or candidate.quality > self.best.quality:
             self.best = candidate
 
+    def add_motion_candidate(
+        self,
+        frame: np.ndarray,
+        bbox: Optional[BBox],
+    ) -> None:
+        """Keep an expanded motion crop when generic YOLO misses a small bird."""
+        if bbox is None or frame.size == 0:
+            return
+
+        frame_height, frame_width = frame.shape[:2]
+        x, y, width, height = bbox
+        if width * height > frame_width * frame_height * 0.75:
+            return
+
+        pad_x = max(24, int(width * 0.6))
+        pad_y = max(24, int(height * 0.6))
+        x1 = max(0, x - pad_x)
+        y1 = max(0, y - pad_y)
+        x2 = min(frame_width, x + width + pad_x)
+        y2 = min(frame_height, y + height + pad_y)
+        if x2 <= x1 or y2 <= y1:
+            return
+
+        crop = frame[y1:y2, x1:x2].copy()
+        gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
+        sharpness = float(cv2.Laplacian(gray, cv2.CV_64F).var())
+        area_bonus = min(((x2 - x1) * (y2 - y1)) / 100_000.0, 1.0)
+        quality = min(sharpness / 500.0, 1.0) * 0.8 + area_bonus * 0.2
+        candidate = BestBirdFrame(
+            detection=BirdDetection(
+                confidence=0.0,
+                bbox=(x1, y1, x2 - x1, y2 - y1),
+                crop=crop,
+            ),
+            quality=quality,
+            sharpness=sharpness,
+            source="motion",
+        )
+        if self.fallback is None or candidate.quality > self.fallback.quality:
+            self.fallback = candidate
+
     def complete(self, now: float) -> bool:
         return self.started_at is not None and (
             now - self.started_at
         ) >= self.duration_seconds
 
     def finish(self) -> Optional[BestBirdFrame]:
-        best = self.best
+        best = self.best or self.fallback
         self.started_at = None
         self.last_sample_at = None
         self.best = None
+        self.fallback = None
         return best

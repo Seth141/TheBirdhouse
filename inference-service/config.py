@@ -36,6 +36,7 @@ class Settings:
     detection_confidence_threshold: float
     classification_confidence_threshold: float
     classification_margin_threshold: float
+    unknown_min_confidence: float
     debounce_seconds: float
     capture_window_seconds: float
     capture_sample_interval_seconds: float
@@ -67,6 +68,7 @@ def load_settings() -> Settings:
         classification_margin_threshold=_float(
             "CLASSIFICATION_MARGIN_THRESHOLD", 0.15
         ),
+        unknown_min_confidence=_float("UNKNOWN_MIN_CONFIDENCE", 0.20),
         debounce_seconds=_float("DEBOUNCE_SECONDS", 45.0),
         capture_window_seconds=_float("MIN_CAPTURE_SECONDS", 3.0),
         capture_sample_interval_seconds=_float(
