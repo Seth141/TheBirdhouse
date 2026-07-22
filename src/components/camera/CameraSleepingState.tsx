@@ -35,14 +35,14 @@ export function CameraSleepingState({ compact = false }: { compact?: boolean }) 
         className={
           compact
             ? "max-w-[240px]"
-            : "relative z-[1] w-full bg-gradient-to-t from-[#1A2433]/85 via-[#1A2433]/45 to-transparent px-6 pb-7 pt-16 text-center"
+            : "absolute inset-x-0 bottom-0 z-[1] w-full bg-gradient-to-t from-[#1A2433]/90 via-[#1A2433]/50 to-transparent px-5 pb-4 pt-10 text-center lg:pb-5"
         }
       >
         <p
           className={
             compact
-              ? "font-heading text-base font-medium text-[#4F545A]"
-              : "font-heading text-lg font-medium text-white lg:text-xl"
+              ? "font-heading text-sm font-medium text-[#4F545A]"
+              : "font-heading text-sm font-medium text-white lg:text-[0.95rem]"
           }
         >
           The birds and camera are sleeping.
@@ -51,7 +51,7 @@ export function CameraSleepingState({ compact = false }: { compact?: boolean }) 
           className={
             compact
               ? "mt-1 text-xs leading-relaxed text-[#8A8F94]"
-              : "mt-1.5 text-sm leading-relaxed text-white/85"
+              : "mt-1 text-[11px] leading-relaxed text-white/85 lg:text-xs"
           }
         >
           Check back tomorrow starting 5:00 AM PST.
