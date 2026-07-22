@@ -3,6 +3,56 @@
  * Pre-warms the audio graph and caches flutter buffers so clicks stay lag-free.
  */
 
+export type LiveCamChirpId =
+  | "bright-peep"
+  | "soft-tweet"
+  | "chickadee"
+  | "wren-blip"
+  | "seed-drop"
+  | "dawn-note";
+
+export type LiveCamChirpOption = {
+  id: LiveCamChirpId;
+  name: string;
+  description: string;
+};
+
+export const LIVE_CAM_CHIRPS: LiveCamChirpOption[] = [
+  {
+    id: "bright-peep",
+    name: "Bright peep",
+    description: "Quick high up-glide",
+  },
+  {
+    id: "soft-tweet",
+    name: "Soft tweet",
+    description: "Gentle mid-range slide",
+  },
+  {
+    id: "chickadee",
+    name: "Chickadee",
+    description: "Little down-then-up peep",
+  },
+  {
+    id: "wren-blip",
+    name: "Wren blip",
+    description: "Short sharp spark",
+  },
+  {
+    id: "seed-drop",
+    name: "Seed drop",
+    description: "Tiny high tick",
+  },
+  {
+    id: "dawn-note",
+    name: "Dawn note",
+    description: "Warm lower whistle",
+  },
+];
+
+const STORAGE_KEY = "birdhouse.liveCamChirp";
+const DEFAULT_CHIRP: LiveCamChirpId = "bright-peep";
+
 let sharedCtx: AudioContext | null = null;
 let flutterBuffer: AudioBuffer | null = null;
 let warming: Promise<void> | null = null;
@@ -65,18 +115,44 @@ export function warmSoftSounds() {
   return warming;
 }
 
+function isLiveCamChirpId(value: string): value is LiveCamChirpId {
+  return LIVE_CAM_CHIRPS.some((option) => option.id === value);
+}
+
+export function getLiveCamChirpId(): LiveCamChirpId {
+  if (typeof window === "undefined") return DEFAULT_CHIRP;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (raw && isLiveCamChirpId(raw)) return raw;
+  } catch {
+    // Ignore storage failures (private mode, etc.).
+  }
+  return DEFAULT_CHIRP;
+}
+
+export function setLiveCamChirpId(id: LiveCamChirpId) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(STORAGE_KEY, id);
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
 function playChirp({
   startFreq,
   endFreq,
   startAt = 0,
   duration = 0.09,
   volume = 0.035,
+  type = "sine",
 }: {
   startFreq: number;
   endFreq: number;
   startAt?: number;
   duration?: number;
   volume?: number;
+  type?: OscillatorType;
 }) {
   const ctx = getAudioContext();
   if (!ctx) return;
@@ -86,7 +162,7 @@ function playChirp({
   const gain = ctx.createGain();
   const filter = ctx.createBiquadFilter();
 
-  osc.type = "sine";
+  osc.type = type;
   osc.frequency.setValueAtTime(startFreq, now);
   osc.frequency.exponentialRampToValueAtTime(
     Math.max(endFreq, 1),
@@ -162,17 +238,76 @@ function kickOff(play: () => void) {
   play();
 }
 
-/** Single bright peep when tapping Live Cam — distinct from tip / playlist. */
+function playChirpPreset(id: LiveCamChirpId) {
+  switch (id) {
+    case "bright-peep":
+      playChirp({
+        startFreq: 2850,
+        endFreq: 3600,
+        duration: 0.1,
+        volume: 0.036,
+      });
+      return;
+    case "soft-tweet":
+      playChirp({
+        startFreq: 1950,
+        endFreq: 2450,
+        duration: 0.12,
+        volume: 0.034,
+        type: "triangle",
+      });
+      return;
+    case "chickadee":
+      playChirp({
+        startFreq: 2500,
+        endFreq: 1900,
+        duration: 0.055,
+        volume: 0.033,
+      });
+      playChirp({
+        startFreq: 2100,
+        endFreq: 3000,
+        startAt: 0.07,
+        duration: 0.08,
+        volume: 0.03,
+      });
+      return;
+    case "wren-blip":
+      playChirp({
+        startFreq: 3400,
+        endFreq: 2200,
+        duration: 0.055,
+        volume: 0.038,
+      });
+      return;
+    case "seed-drop":
+      playChirp({
+        startFreq: 4200,
+        endFreq: 3100,
+        duration: 0.04,
+        volume: 0.032,
+      });
+      return;
+    case "dawn-note":
+      playChirp({
+        startFreq: 1400,
+        endFreq: 1750,
+        duration: 0.16,
+        volume: 0.03,
+        type: "triangle",
+      });
+      return;
+  }
+}
+
+/** Preview any Live Cam chirp option (does not change the saved choice). */
+export function previewLiveCamChirp(id: LiveCamChirpId) {
+  kickOff(() => playChirpPreset(id));
+}
+
+/** Single chirp when tapping Live Cam — uses the saved selection. */
 export function playLiveCamSound() {
-  kickOff(() => {
-    playChirp({
-      startFreq: 2850,
-      endFreq: 3600,
-      startAt: 0,
-      duration: 0.1,
-      volume: 0.036,
-    });
-  });
+  kickOff(() => playChirpPreset(getLiveCamChirpId()));
 }
 
 /** Quieter chirplet for Tip of the Day. */
