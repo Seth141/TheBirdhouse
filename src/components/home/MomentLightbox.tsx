@@ -47,7 +47,7 @@ export function MomentLightbox({
         role="dialog"
         aria-modal="true"
         aria-label={moment.title}
-        className="relative aspect-[4/3] h-auto max-h-[75vh] w-[min(92vw,40rem)] overflow-hidden rounded-[28px] bg-[#3F5244] shadow-2xl"
+        className="relative aspect-[4/3] h-auto max-h-[75vh] w-[min(92vw,40rem)] overflow-hidden rounded-[28px] bg-gradient-to-br from-[#6B8570] via-[#5A7360] to-[#4A5F50] shadow-2xl"
       >
         <Image
           src={moment.imageSrc}
@@ -57,11 +57,15 @@ export function MomentLightbox({
           priority
           className="object-contain object-center"
         />
-        <div className="absolute inset-x-0 bottom-0 bg-[#4F6655] px-5 py-4 text-white">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_45%,rgba(74,95,80,0.5)_100%)]"
+        />
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#3F5244]/95 via-[#4F6655]/75 to-transparent px-5 pb-4 pt-12 text-white">
           <p className="font-heading text-xl font-semibold lg:text-2xl">
             {moment.title}
           </p>
-          <p className="text-sm text-white">{moment.subtitle}</p>
+          <p className="text-sm text-white/90">{moment.subtitle}</p>
         </div>
         <button
           ref={closeButtonRef}
