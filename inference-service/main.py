@@ -68,7 +68,13 @@ def _iso_now() -> str:
 
 async def capture_loop(cfg: Settings) -> None:
     status.loop_running = True
-    motion = MotionDetector(threshold=cfg.motion_threshold)
+    motion = MotionDetector(
+        threshold=cfg.motion_threshold,
+        min_area_fraction=cfg.motion_min_area_fraction,
+        max_area_fraction=cfg.motion_max_area_fraction,
+        min_concentration=cfg.motion_min_concentration,
+        roi=cfg.motion_roi,
+    )
     bird = BirdDetector(
         model_path=cfg.bird_model_path,
         confidence_threshold=cfg.detection_confidence_threshold,
@@ -123,12 +129,18 @@ async def capture_loop(cfg: Settings) -> None:
             status.frames_seen += 1
             status.last_frame_at = _iso_now()
             frame_index += 1
+            now = time.monotonic()
 
-            if cfg.frame_skip > 1 and (frame_index % cfg.frame_skip) != 0:
+            # Idle: skip frames to save CPU. Active visit: use every frame so
+            # fast birds (titmice) are not missed between samples.
+            if (
+                not visit.active
+                and cfg.frame_skip > 1
+                and (frame_index % cfg.frame_skip) != 0
+            ):
                 await asyncio.sleep(0)
                 continue
 
-            now = time.monotonic()
             motion_result = await asyncio.to_thread(motion.update, frame)
             if (
                 not visit.active
@@ -139,14 +151,17 @@ async def capture_loop(cfg: Settings) -> None:
                 status.motion_triggers += 1
                 status.last_motion_at = _iso_now()
                 logger.info(
-                    "Motion triggered; collecting bird candidates for %.1fs",
+                    "Motion triggered; collecting bird candidates for %.1fs "
+                    "(sample every %.2fs)",
                     cfg.capture_window_seconds,
+                    cfg.capture_sample_interval_seconds,
                 )
 
             if not visit.active:
                 await asyncio.sleep(0)
                 continue
 
+            # Keep motion crops every frame — titmice are often gone in <1s.
             if motion_result.triggered:
                 visit.add_motion_candidate(frame, motion_result.contour_bbox)
 
@@ -306,6 +321,8 @@ def get_status() -> JSONResponse:
         "last_error": status.last_error,
         "config": {
             "motion_threshold": settings.motion_threshold,
+            "motion_roi": list(settings.motion_roi),
+            "motion_min_concentration": settings.motion_min_concentration,
             "capture_window_seconds": settings.capture_window_seconds,
             "capture_sample_interval_seconds": settings.capture_sample_interval_seconds,
             "detection_confidence_threshold": settings.detection_confidence_threshold,

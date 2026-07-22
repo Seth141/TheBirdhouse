@@ -17,15 +17,15 @@ def detection(confidence: float, crop: np.ndarray) -> BirdDetection:
 
 class VisitCaptureWindowTests(unittest.TestCase):
     def test_timing_sampling_and_reset(self):
-        window = VisitCaptureWindow(3.0, 0.5)
+        window = VisitCaptureWindow(1.5, 0.15)
         window.start(10.0)
 
         self.assertTrue(window.should_sample(10.0))
         window.add(None, 10.0)
-        self.assertFalse(window.should_sample(10.2))
-        self.assertTrue(window.should_sample(10.5))
-        self.assertFalse(window.complete(12.99))
-        self.assertTrue(window.complete(13.0))
+        self.assertFalse(window.should_sample(10.05))
+        self.assertTrue(window.should_sample(10.15))
+        self.assertFalse(window.complete(11.49))
+        self.assertTrue(window.complete(11.5))
 
         self.assertIsNone(window.finish())
         self.assertFalse(window.active)
@@ -63,7 +63,8 @@ class VisitCaptureWindowTests(unittest.TestCase):
         assert best is not None
         self.assertEqual(best.source, "motion")
         self.assertEqual(best.detection.confidence, 0.0)
-        self.assertGreater(best.detection.bbox[2], 40)
+        # Motion crops are padded generously for gallery context.
+        self.assertGreater(best.detection.bbox[2], 80)
 
     def test_prefers_yolo_candidate_over_motion_fallback(self):
         window = VisitCaptureWindow(3.0, 0.5)
@@ -77,6 +78,14 @@ class VisitCaptureWindowTests(unittest.TestCase):
         self.assertIsNotNone(best)
         assert best is not None
         self.assertEqual(best.source, "yolo")
+
+    def test_rejects_canopy_sized_motion_fallback(self):
+        window = VisitCaptureWindow(3.0, 0.5)
+        window.start(0.0)
+        frame = np.full((200, 200, 3), 127, dtype=np.uint8)
+        # ~45% of the frame — foliage sheet, not a bird.
+        window.add_motion_candidate(frame, (10, 10, 140, 130))
+        self.assertIsNone(window.finish())
 
 
 if __name__ == "__main__":

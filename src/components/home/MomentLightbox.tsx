@@ -55,7 +55,7 @@ export function MomentLightbox({
           fill
           sizes="(min-width: 1024px) 28rem, 75vw"
           priority
-          className="object-cover object-center"
+          className="object-contain object-center"
         />
         <div className="absolute inset-x-0 bottom-0 bg-[#4F6655] px-5 py-4 text-white">
           <p className="font-heading text-xl font-semibold lg:text-2xl">

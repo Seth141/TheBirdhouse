@@ -82,11 +82,17 @@ class VisitCaptureWindow:
 
         frame_height, frame_width = frame.shape[:2]
         x, y, width, height = bbox
-        if width * height > frame_width * frame_height * 0.75:
+        frame_area = frame_width * frame_height
+        blob_area = width * height
+        # Skip canopy-sized / sheet motion (leaves) and tiny noise.
+        if blob_area > frame_area * 0.20 or blob_area < frame_area * 0.002:
+            return
+        aspect = width / float(max(height, 1))
+        if aspect > 4.0 or aspect < 0.2:
             return
 
-        pad_x = max(24, int(width * 0.6))
-        pad_y = max(24, int(height * 0.6))
+        pad_x = max(32, int(width * 1.1))
+        pad_y = max(32, int(height * 1.1))
         x1 = max(0, x - pad_x)
         y1 = max(0, y - pad_y)
         x2 = min(frame_width, x + width + pad_x)

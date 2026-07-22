@@ -77,10 +77,10 @@ class BirdDetector:
             x2, y2 = min(w, x2), min(h, y2)
             if x2 <= x1 or y2 <= y1:
                 continue
-            # Species classifiers perform better with a little surrounding
-            # context than with an edge-tight detector crop.
-            pad_x = max(8, int((x2 - x1) * 0.15))
-            pad_y = max(8, int((y2 - y1) * 0.15))
+            # Generous padding so Recent Moments show the birdhouse, not a
+            # face-cropped bird. Classifiers still handle this much context.
+            pad_x = max(16, int((x2 - x1) * 0.55))
+            pad_y = max(16, int((y2 - y1) * 0.55))
             x1 = max(0, x1 - pad_x)
             y1 = max(0, y1 - pad_y)
             x2 = min(w, x2 + pad_x)

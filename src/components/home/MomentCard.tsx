@@ -40,7 +40,7 @@ export function MomentCard({
           alt={moment.title}
           fill
           sizes="(min-width: 1024px) 280px, 144px"
-          className="object-cover object-center"
+          className="object-contain object-center"
         />
 
         <button

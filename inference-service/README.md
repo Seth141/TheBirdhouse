@@ -6,7 +6,8 @@ detects birds, classifies species, and writes rows to Supabase.
 ## Pipeline
 
 1. Reconnecting RTSP capture (`capture.py`)
-2. Motion opens a three-second visit window (`detect_motion.py`, `visit_capture.py`)
+2. Motion opens a short visit window (`detect_motion.py`, `visit_capture.py`),
+   ignoring windy leaf clutter via ROI + blob concentration filters
 3. YOLO samples the window and selects its sharpest high-confidence bird crop
 4. `houlette/birdclass-na` accepts a species only when confidence and margin pass
 5. Supabase stores history and a FIFO queue of the six newest recognized images
