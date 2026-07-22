@@ -15,7 +15,7 @@ export function CameraSleepingState({ compact = false }: { compact?: boolean }) 
             src="/artwork/empty-states/camera-sleeping.png"
             alt="A bluebird sleeping in a blossomed nest under the moon"
             fill
-            className="object-cover object-[50%_62%]"
+            className="object-cover object-[50%_78%]"
             sizes="112px"
             priority
           />
@@ -25,7 +25,7 @@ export function CameraSleepingState({ compact = false }: { compact?: boolean }) 
           src="/artwork/empty-states/camera-sleeping.png"
           alt="A bluebird sleeping in a blossomed nest under the moon"
           fill
-          className="object-cover object-[50%_58%] lg:object-[50%_55%]"
+          className="object-cover object-[50%_82%] lg:object-[50%_78%]"
           sizes="(min-width: 1024px) 70vw, 100vw"
           priority
         />
