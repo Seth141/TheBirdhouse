@@ -10,6 +10,7 @@ import { CameraStatusBadge } from "@/components/camera/CameraStatusBadge";
 import { MomentLightbox } from "@/components/home/MomentLightbox";
 import { birdhouseCameraConfig } from "@/lib/camera/createCameraSource";
 import { prewarmCameraBridge } from "@/lib/camera/prewarmBridge";
+import { isCameraSleeping } from "@/lib/camera/sleepSchedule";
 import type {
   CameraConnectionStatus,
   CameraSnapshot,
@@ -33,6 +34,7 @@ export default function LiveCameraPage() {
   const [bridgePhase, setBridgePhase] = useState<BridgePhase>("starting");
   const [bridgeMessage, setBridgeMessage] = useState("Waking camera…");
   const [controlConfigured, setControlConfigured] = useState(true);
+  const [sleeping, setSleeping] = useState(() => isCameraSleeping());
   const [selectedEvent, setSelectedEvent] = useState<MotionEvent | null>(null);
   const captureRef = useRef<(() => Promise<CameraSnapshot>) | null>(null);
   const pushToast = useAppStore((s) => s.pushToast);
@@ -45,6 +47,16 @@ export default function LiveCameraPage() {
   }, []);
 
   const refreshBridge = useCallback(async (kickWake: boolean) => {
+    if (isCameraSleeping()) {
+      setSleeping(true);
+      setBridgePhase("stopped");
+      setBridgeMessage(
+        "The birds and camera are sleeping. Check back tomorrow starting 5:00 AM PST."
+      );
+      return;
+    }
+    setSleeping(false);
+
     try {
       if (kickWake) {
         const wakeRes = await fetch("/api/bridge/wake", {
@@ -69,7 +81,17 @@ export default function LiveCameraPage() {
         phase?: BridgePhase;
         message?: string;
         controlConfigured?: boolean;
+        sleeping?: boolean;
       };
+      if (data.sleeping) {
+        setSleeping(true);
+        setBridgePhase("stopped");
+        setBridgeMessage(
+          data.message ??
+            "The birds and camera are sleeping. Check back tomorrow starting 5:00 AM PST."
+        );
+        return;
+      }
       setBridgePhase(data.phase ?? "unknown");
       setBridgeMessage(data.message ?? "Connecting…");
       if (typeof data.controlConfigured === "boolean") {
@@ -82,19 +104,52 @@ export default function LiveCameraPage() {
   }, []);
 
   useEffect(() => {
-    prewarmCameraBridge();
     let cancelled = false;
+    let pollId: number | undefined;
 
-    const tick = async () => {
-      if (cancelled) return;
-      await refreshBridge(false);
+    const stopPolling = () => {
+      if (pollId != null) {
+        window.clearInterval(pollId);
+        pollId = undefined;
+      }
     };
 
-    void refreshBridge(true);
-    const id = window.setInterval(tick, 2500);
+    const startDaytimePolling = () => {
+      if (cancelled || pollId != null) return;
+      prewarmCameraBridge();
+      void refreshBridge(true);
+      pollId = window.setInterval(() => {
+        if (!cancelled && !isCameraSleeping()) {
+          void refreshBridge(false);
+        }
+      }, 2500);
+    };
+
+    const syncSleep = () => {
+      const asleep = isCameraSleeping();
+      setSleeping(asleep);
+      if (asleep) {
+        setBridgePhase("stopped");
+        setBridgeMessage(
+          "The birds and camera are sleeping. Check back tomorrow starting 5:00 AM PST."
+        );
+        stopPolling();
+        // Ask the server to shut Railway down if it is still up.
+        void fetch("/api/bridge/status", { cache: "no-store" }).catch(
+          () => undefined
+        );
+        return;
+      }
+      startDaytimePolling();
+    };
+
+    syncSleep();
+    const sleepId = window.setInterval(syncSleep, 30_000);
+
     return () => {
       cancelled = true;
-      window.clearInterval(id);
+      stopPolling();
+      window.clearInterval(sleepId);
     };
   }, [refreshBridge]);
 
@@ -119,9 +174,11 @@ export default function LiveCameraPage() {
     pushToast("Snapshot saved to your gallery.");
   };
 
-  // Only mount the HLS player once the bridge is actually serving video.
+  // Overnight sleep always wins — never mount HLS or spend Railway hours.
+  const showSleeping = sleeping;
   const showPlayer =
-    birdhouseCameraConfig.protocol === "mock" || bridgePhase === "ready";
+    !showSleeping &&
+    (birdhouseCameraConfig.protocol === "mock" || bridgePhase === "ready");
 
   const waitingCopy = !controlConfigured
     ? "On-demand wake isn’t configured yet. Start wyze-bridge in Railway, or add RAILWAY_API_TOKEN + service/environment IDs on Vercel."
@@ -132,19 +189,19 @@ export default function LiveCameraPage() {
       <div className="space-y-6 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-8 lg:space-y-0 xl:grid-cols-[minmax(0,1fr)_340px] xl:gap-10">
         <FadeIn>
           <GlassCard padding="sm" className="lg:p-4">
-            {showPlayer ? (
+            {showSleeping ? (
+              <div className="wood-frame">
+                <div className="wood-frame-inner relative aspect-[3/4] overflow-hidden bg-[#1A2433] lg:aspect-video">
+                  <CameraSleepingState />
+                </div>
+              </div>
+            ) : showPlayer ? (
               <CameraPlayer
                 config={birdhouseCameraConfig}
                 variant="full"
                 onStatusChange={handleStatus}
                 captureRef={captureRef}
               />
-            ) : bridgePhase === "stopped" ? (
-              <div className="wood-frame">
-                <div className="wood-frame-inner relative aspect-[3/4] overflow-hidden bg-[#1A2433] lg:aspect-video">
-                  <CameraSleepingState />
-                </div>
-              </div>
             ) : (
               <div className="wood-frame">
                 <div className="wood-frame-inner relative flex aspect-[3/4] flex-col items-center justify-center gap-4 bg-[#EEF6FB] px-6 text-center lg:aspect-video">

@@ -1,11 +1,11 @@
-# Night stop for wyze-bridge — Sonoma County / Rohnert Park daylight window.
-# GitHub Actions cron is always UTC. Pacific is UTC-7 (PDT) or UTC-8 (PST).
-# 03:00 UTC ≈ 20:00 PDT / 19:00 PST (after summer dusk; well after winter sunset).
+# Night stop — 8:00 PM Pacific (America/Los_Angeles).
+# Cron is UTC: 03:00 = 8pm PDT, 04:00 = 8pm PST. Script no-ops if not asleep.
 name: Railway Night Stop
 
 on:
   schedule:
     - cron: "0 3 * * *"
+    - cron: "0 4 * * *"
   workflow_dispatch:
 
 jobs:

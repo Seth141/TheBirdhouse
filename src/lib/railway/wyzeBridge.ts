@@ -3,6 +3,8 @@
  * Prefer redeploy/restart of the existing image (no rebuild) for faster wakes.
  */
 
+import { isCameraSleeping } from "@/lib/camera/sleepSchedule";
+
 const RAILWAY_API = "https://backboard.railway.com/graphql/v2";
 const KEEP_ALIVE_VAR = "BIRDHOUSE_KEEP_ALIVE_UNTIL";
 
@@ -23,43 +25,21 @@ function config() {
   const monitoringEnabled = ["1", "true", "yes", "on"].includes(
     process.env.CAMERA_MONITORING_ENABLED?.trim().toLowerCase() ?? ""
   );
-  const monitoringStartUtcHour = Number(
-    process.env.CAMERA_MONITORING_START_UTC_HOUR ?? "13"
-  );
-  const monitoringStopUtcHour = Number(
-    process.env.CAMERA_MONITORING_STOP_UTC_HOUR ?? "3"
-  );
   return {
     token,
     serviceId,
     environmentId,
     idleMs: (Number.isFinite(idleMinutes) ? idleMinutes : 12) * 60_000,
     monitoringEnabled,
-    monitoringStartUtcHour,
-    monitoringStopUtcHour,
     configured: Boolean(token && serviceId && environmentId),
   };
 }
 
+/** Daytime monitoring window — inverse of the Pacific overnight sleep. */
 export function isScheduledInferenceActive(now = new Date()): boolean {
-  const {
-    monitoringEnabled,
-    monitoringStartUtcHour,
-    monitoringStopUtcHour,
-  } = config();
+  const { monitoringEnabled } = config();
   if (!monitoringEnabled) return false;
-  if (
-    !Number.isFinite(monitoringStartUtcHour) ||
-    !Number.isFinite(monitoringStopUtcHour)
-  ) {
-    return false;
-  }
-
-  const hour = now.getUTCHours();
-  if (monitoringStartUtcHour < monitoringStopUtcHour) {
-    return hour >= monitoringStartUtcHour && hour < monitoringStopUtcHour;
-  }
-  return hour >= monitoringStartUtcHour || hour < monitoringStopUtcHour;
+  return !isCameraSleeping(now);
 }
 
 export function isRailwayBridgeControlConfigured(): boolean {
@@ -233,6 +213,21 @@ export async function ensureBridgeAwake(): Promise<{
   keepAliveUntil: number | null;
 }> {
   const { configured, serviceId, environmentId } = config();
+
+  // Overnight: never wake / keep the bridge alive — show the sleeping state.
+  if (isCameraSleeping()) {
+    if (configured) {
+      void stopBridgeForNight().catch(() => undefined);
+    }
+    return {
+      phase: "stopped",
+      deploymentStatus: null,
+      message:
+        "The birds and camera are sleeping. Check back tomorrow starting 5:00 AM PST.",
+      keepAliveUntil: null,
+    };
+  }
+
   if (!configured) {
     // Still allow streaming if bridge is left running manually.
     const ready = await probeHlsReady();
@@ -305,6 +300,35 @@ export async function ensureBridgeAwake(): Promise<{
   };
 }
 
+/** Force-stop for the overnight sleep window (ignores keep-alive). */
+export async function stopBridgeForNight(): Promise<{
+  stopped: boolean;
+  reason: string;
+}> {
+  const { configured } = config();
+  if (!configured) {
+    return { stopped: false, reason: "Railway control not configured" };
+  }
+
+  const latest = await getLatestDeployment();
+  if (!latest) {
+    return { stopped: false, reason: "No deployment found" };
+  }
+  if (
+    latest.status === "REMOVED" ||
+    latest.status === "FAILED" ||
+    latest.status === "CRASHED"
+  ) {
+    return { stopped: false, reason: `Already ${latest.status}` };
+  }
+
+  await railwayGraphql(
+    `mutation ($id: String!) { deploymentStop(id: $id) }`,
+    { id: latest.id }
+  );
+  return { stopped: true, reason: "Stopped for overnight sleep window" };
+}
+
 export async function stopBridgeIfIdle(): Promise<{
   stopped: boolean;
   reason: string;
@@ -313,6 +337,12 @@ export async function stopBridgeIfIdle(): Promise<{
   if (!configured) {
     return { stopped: false, reason: "Railway control not configured" };
   }
+
+  // Night window always wins — stop even if someone left Live Cam open.
+  if (isCameraSleeping()) {
+    return stopBridgeForNight();
+  }
+
   if (isScheduledInferenceActive()) {
     return {
       stopped: false,
@@ -334,21 +364,9 @@ export async function stopBridgeIfIdle(): Promise<{
     return { stopped: false, reason: "Bridge busy; refreshed keep-alive" };
   }
 
-  const latest = await getLatestDeployment();
-  if (!latest) {
-    return { stopped: false, reason: "No deployment found" };
-  }
-  if (
-    latest.status === "REMOVED" ||
-    latest.status === "FAILED" ||
-    latest.status === "CRASHED"
-  ) {
-    return { stopped: false, reason: `Already ${latest.status}` };
-  }
-
-  await railwayGraphql(
-    `mutation ($id: String!) { deploymentStop(id: $id) }`,
-    { id: latest.id }
+  return stopBridgeForNight().then((result) =>
+    result.stopped
+      ? { stopped: true, reason: "Stopped after idle window" }
+      : result
   );
-  return { stopped: true, reason: "Stopped after idle window" };
 }

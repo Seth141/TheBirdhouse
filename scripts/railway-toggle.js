@@ -17,6 +17,19 @@
  */
 
 const RAILWAY_API = "https://backboard.railway.com/graphql/v2";
+const PACIFIC_TZ = "America/Los_Angeles";
+
+/** True from 8:00 PM Pacific until 5:00 AM Pacific. */
+function isCameraSleeping(now = new Date()) {
+  const hour = Number(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: PACIFIC_TZ,
+      hour: "numeric",
+      hourCycle: "h23",
+    }).format(now)
+  );
+  return hour >= 20 || hour < 5;
+}
 
 function requireEnv(name) {
   const value = process.env[name]?.trim();
@@ -149,10 +162,20 @@ async function main() {
   const { start, stop } = parseArgs(process.argv);
   const serviceId = requireEnv("RAILWAY_SERVICE_ID");
   const environmentId = requireEnv("RAILWAY_ENVIRONMENT_ID");
+  const sleeping = isCameraSleeping();
 
   if (stop) {
+    // Dual UTC crons cover PST/PDT; only stop when Pacific night has begun.
+    if (!sleeping && !process.env.FORCE_RAILWAY_TOGGLE) {
+      console.log("Still daytime in Pacific — skipping night stop.");
+      return;
+    }
     await stopService(serviceId, environmentId);
   } else if (start) {
+    if (sleeping && !process.env.FORCE_RAILWAY_TOGGLE) {
+      console.log("Still overnight in Pacific — skipping morning start.");
+      return;
+    }
     await startService(serviceId, environmentId);
   }
 }

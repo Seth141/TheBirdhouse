@@ -1,10 +1,10 @@
-# Dawn start for wyze-bridge — Sonoma County / Rohnert Park daylight window.
-# GitHub Actions cron is always UTC. Pacific is UTC-7 (PDT) or UTC-8 (PST).
-# 13:00 UTC ≈ 06:00 PDT / 05:00 PST (up by summer dawn; slight winter margin).
+# Dawn start — 5:00 AM Pacific (America/Los_Angeles).
+# Cron is UTC: 12:00 = 5am PDT, 13:00 = 5am PST. Script no-ops if still asleep.
 name: Railway Morning Start
 
 on:
   schedule:
+    - cron: "0 12 * * *"
     - cron: "0 13 * * *"
   workflow_dispatch:
 
