@@ -80,7 +80,7 @@ def load_settings() -> Settings:
             "houlette/birdclass-na",
         ).strip(),
         enable_species_classifier=_bool("ENABLE_SPECIES_CLASSIFIER", True),
-        recent_image_limit=max(1, _int("RECENT_IMAGE_LIMIT", 5)),
+        recent_image_limit=max(1, _int("RECENT_IMAGE_LIMIT", 6)),
         dry_run=_bool("DRY_RUN", False),
         host=os.getenv("HOST", "0.0.0.0").strip(),
         port=_int("PORT", 8080),

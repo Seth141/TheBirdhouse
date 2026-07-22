@@ -117,17 +117,17 @@ async function fetchSpecies(): Promise<SpeciesRow[]> {
 }
 
 export async function getMoments(): Promise<Moment[]> {
-  const rows = await fetchObservations(5, true);
+  const rows = await fetchObservations(6, true);
   return rows.map(observationToMoment);
 }
 
 export async function getRecordings(): Promise<Recording[]> {
-  const rows = await fetchObservations(5, true);
+  const rows = await fetchObservations(6, true);
   return rows.map(observationToRecording);
 }
 
 export async function getMotionEvents(): Promise<MotionEvent[]> {
-  const rows = await fetchObservations(5);
+  const rows = await fetchObservations(6);
   return rows.map(observationToMotionEvent);
 }
 
@@ -294,7 +294,7 @@ export interface SpeciesGalleryItem {
 export async function getSpeciesGallery(): Promise<SpeciesGalleryItem[]> {
   const [species, observations] = await Promise.all([
     fetchSpecies(),
-    fetchObservations(5, true),
+    fetchObservations(6, true),
   ]);
 
   return species.map((s) => {

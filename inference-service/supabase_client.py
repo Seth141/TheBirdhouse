@@ -20,7 +20,7 @@ class SupabaseWriter:
         url: str,
         service_role_key: str,
         bucket: str = "bird-images",
-        recent_image_limit: int = 5,
+        recent_image_limit: int = 6,
         dry_run: bool = False,
     ) -> None:
         self.url = url.rstrip("/")

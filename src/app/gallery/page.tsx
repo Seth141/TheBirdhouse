@@ -90,7 +90,7 @@ export default function GalleryPage() {
                     </p>
                     {s.recentImages.length > 1 ? (
                       <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1">
-                        {s.recentImages.slice(0, 5).map((src, i) => (
+                        {s.recentImages.slice(0, 6).map((src, i) => (
                           <span
                             key={`${s.id}-${i}`}
                             className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg"

@@ -9,7 +9,7 @@ detects birds, classifies species, and writes rows to Supabase.
 2. Motion opens a three-second visit window (`detect_motion.py`, `visit_capture.py`)
 3. YOLO samples the window and selects its sharpest high-confidence bird crop
 4. `houlette/birdclass-na` accepts a species only when confidence and margin pass
-5. Supabase stores history and a FIFO queue of the five newest recognized images
+5. Supabase stores history and a FIFO queue of the six newest recognized images
 
 ## Local dry run
 

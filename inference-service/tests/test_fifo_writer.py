@@ -70,7 +70,7 @@ class FifoWriterTests(unittest.TestCase):
         self.writer = SupabaseWriter(
             url="https://example.supabase.co",
             service_role_key="test",
-            recent_image_limit=5,
+            recent_image_limit=6,
         )
         self.writer._client = self.client
 
@@ -84,23 +84,23 @@ class FifoWriterTests(unittest.TestCase):
             bbox=None,
         )
 
-    def test_sixth_and_seventh_insertions_evict_oldest(self):
-        for number in range(1, 6):
+    def test_seventh_and_eighth_insertions_evict_oldest(self):
+        for number in range(1, 7):
             self.enqueue(number)
         self.assertEqual(
             self.client.queue,
-            ["Bird 1", "Bird 2", "Bird 3", "Bird 4", "Bird 5"],
+            ["Bird 1", "Bird 2", "Bird 3", "Bird 4", "Bird 5", "Bird 6"],
         )
 
-        self.enqueue(6)
-        self.assertEqual(
-            self.client.queue,
-            ["Bird 2", "Bird 3", "Bird 4", "Bird 5", "Bird 6"],
-        )
         self.enqueue(7)
         self.assertEqual(
             self.client.queue,
-            ["Bird 3", "Bird 4", "Bird 5", "Bird 6", "Bird 7"],
+            ["Bird 2", "Bird 3", "Bird 4", "Bird 5", "Bird 6", "Bird 7"],
+        )
+        self.enqueue(8)
+        self.assertEqual(
+            self.client.queue,
+            ["Bird 3", "Bird 4", "Bird 5", "Bird 6", "Bird 7", "Bird 8"],
         )
 
     def test_unknown_observation_never_calls_fifo_rpc(self):

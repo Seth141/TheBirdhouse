@@ -30,12 +30,12 @@ export function RecentMoments() {
       ) : (
         <>
           <div className="no-scrollbar -mx-5 flex gap-3 overflow-x-auto px-5 pb-1 lg:hidden">
-            {moments?.slice(0, 5).map((moment) => (
+            {moments?.slice(0, 6).map((moment) => (
               <MomentCard key={moment.id} moment={moment} />
             ))}
           </div>
           <div className="hidden gap-4 lg:grid lg:grid-cols-3">
-            {moments?.slice(0, 3).map((moment) => (
+            {moments?.slice(0, 6).map((moment) => (
               <div key={moment.id} className="aspect-square w-full">
                 <MomentCard moment={moment} size="fill" />
               </div>

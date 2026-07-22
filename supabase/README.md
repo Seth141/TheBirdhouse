@@ -22,7 +22,7 @@ This creates:
 - RLS: public **read**, service-role **write** (service role bypasses RLS)
 - `bird-images` storage bucket (public read)
 - Realtime publication on `observations`
-- atomic five-item FIFO for recognized-bird images
+- atomic six-item FIFO for recognized-bird images
 
 ## 2. Frontend env
 

@@ -1,4 +1,4 @@
--- Keep full observation history while retaining images for only the five
+-- Keep full observation history while retaining images for only the six
 -- newest accepted species identifications.
 
 alter table public.observations
@@ -41,7 +41,7 @@ with ranked as (
 insert into public.bird_image_cleanup_queue (storage_path)
 select image_path
 from ranked
-where queue_position > 5
+where queue_position > 6
 on conflict (storage_path) do nothing;
 
 update public.observations as observation
@@ -58,7 +58,7 @@ where observation.id in (
       and image_url is not null
       and image_path is not null
   ) ranked
-  where ranked.queue_position > 5
+  where ranked.queue_position > 6
 );
 
 create or replace function public.enqueue_bird_observation(
@@ -69,7 +69,7 @@ create or replace function public.enqueue_bird_observation(
   p_image_path text,
   p_bbox jsonb,
   p_observed_at timestamptz default now(),
-  p_limit integer default 5
+  p_limit integer default 6
 )
 returns table(observation_id uuid, evicted_image_paths text[])
 language plpgsql
