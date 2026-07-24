@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useRef } from "react";
+import { useId, useMemo, useRef, useSyncExternalStore } from "react";
 import { motion, useInView } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { FadeIn } from "@/components/motion/FadeIn";
@@ -11,6 +11,19 @@ import {
 } from "@/lib/query/hooks";
 
 const ease = [0.22, 1, 0.36, 1] as const;
+
+/** Below Tailwind `lg` — weekly chart eggs read small on narrow phones. */
+function useIsMobileViewport() {
+  return useSyncExternalStore(
+    (onChange) => {
+      const mq = window.matchMedia("(max-width: 1023px)");
+      mq.addEventListener("change", onChange);
+      return () => mq.removeEventListener("change", onChange);
+    },
+    () => window.matchMedia("(max-width: 1023px)").matches,
+    () => true
+  );
+}
 
 function ChartSkeleton({ className }: { className?: string }) {
   return (
@@ -43,6 +56,204 @@ function smoothCurve(points: { x: number; y: number }[]) {
   return d;
 }
 
+/** Egg halves (local coords, tip up) — crack open to reveal a day count. */
+const EGG_LEFT =
+  "M0 -7.2 C-3.1 -7.2 -4.9 -3.4 -5.1 0.6 C-5.3 4.4 -2.9 8.2 0 8.2 L0 -7.2 Z";
+const EGG_RIGHT =
+  "M0 -7.2 L0 8.2 C2.9 8.2 5.3 4.4 5.1 0.6 C4.9 -3.4 3.1 -7.2 0 -7.2 Z";
+
+function HatchCount({
+  x,
+  y,
+  value,
+  isPeak,
+  delay,
+  inView,
+  scale = 1,
+}: {
+  x: number;
+  y: number;
+  value: number;
+  isPeak: boolean;
+  delay: number;
+  inView: boolean;
+  scale?: number;
+}) {
+  const eggScale = isPeak ? scale * 1.12 : scale;
+  const eggY = y - 26 * eggScale;
+  // Peak day = soft bronze egg; other days stay chalky white.
+  const shell = isPeak ? "#B08A5A" : "#FFFFFF";
+  const shellDeep = isPeak ? "#7A5A38" : "#D8D4CE";
+  const shellSoft = isPeak ? "#C9A67A" : "#FFFFFF";
+  const shellMid = isPeak ? "#9A7348" : shell;
+
+  return (
+    <g
+      transform={`translate(${x} ${eggY}) scale(${eggScale})`}
+      aria-hidden
+    >
+      {/* Soft bronze wash behind the peak egg */}
+      {isPeak && (
+        <motion.ellipse
+          cx={0}
+          cy={1}
+          rx={9}
+          ry={11}
+          fill="#A67C52"
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={
+            inView
+              ? { opacity: [0, 0.22, 0.12, 0], scale: [0.5, 1.1, 1.15, 1.25] }
+              : { opacity: 0, scale: 0.5 }
+          }
+          transition={{
+            delay,
+            duration: 1.7,
+            times: [0, 0.25, 0.55, 1],
+            ease,
+          }}
+        />
+      )}
+
+      {/* Number rises out of the cracked egg */}
+      <motion.text
+        textAnchor="middle"
+        dominantBaseline="central"
+        fill={isPeak ? "#5C4030" : "#5C6166"}
+        initial={{ opacity: 0, scale: 0.35, y: 4 }}
+        animate={
+          inView
+            ? { opacity: 1, scale: 1, y: 0 }
+            : { opacity: 0, scale: 0.35, y: 4 }
+        }
+        transition={{
+          delay: delay + 0.85,
+          type: "spring",
+          stiffness: 260,
+          damping: 18,
+        }}
+        style={{
+          fontSize: isPeak ? 13 : 11,
+          fontFamily: "var(--font-heading)",
+          fontWeight: 600,
+          originX: "0px",
+          originY: "0px",
+        }}
+      >
+        {value}
+      </motion.text>
+
+      {/* Left shell */}
+      <motion.g
+        style={{ originX: "0px", originY: "5px" }}
+        initial={{ opacity: 0, scale: 0.4, rotate: 0, x: 0, y: 2 }}
+        animate={
+          inView
+            ? {
+                opacity: [0, 1, 1, 1, 0],
+                scale: [0.4, 1, 1, 1, 0.85],
+                rotate: [0, 0, 0, -34, -48],
+                x: [0, 0, 0, -4, -7],
+                y: [2, 0, 0, -3, 3],
+              }
+            : { opacity: 0, scale: 0.4, rotate: 0, x: 0, y: 2 }
+        }
+        transition={{
+          delay,
+          duration: 1.55,
+          times: [0, 0.18, 0.42, 0.68, 1],
+          ease,
+        }}
+      >
+        <path d={EGG_LEFT} fill={shell} stroke={shellDeep} strokeWidth="0.65" />
+        <ellipse
+          cx="-1.6"
+          cy="-1.2"
+          rx="1.1"
+          ry="2"
+          fill={shellSoft}
+          opacity={isPeak ? 0.45 : 0.7}
+        />
+        {isPeak && (
+          <ellipse
+            cx="-0.4"
+            cy="2.2"
+            rx="2.4"
+            ry="3.2"
+            fill={shellMid}
+            opacity="0.28"
+          />
+        )}
+      </motion.g>
+
+      {/* Right shell */}
+      <motion.g
+        style={{ originX: "0px", originY: "5px" }}
+        initial={{ opacity: 0, scale: 0.4, rotate: 0, x: 0, y: 2 }}
+        animate={
+          inView
+            ? {
+                opacity: [0, 1, 1, 1, 0],
+                scale: [0.4, 1, 1, 1, 0.85],
+                rotate: [0, 0, 0, 34, 48],
+                x: [0, 0, 0, 4, 7],
+                y: [2, 0, 0, -3, 3],
+              }
+            : { opacity: 0, scale: 0.4, rotate: 0, x: 0, y: 2 }
+        }
+        transition={{
+          delay: delay + 0.04,
+          duration: 1.55,
+          times: [0, 0.18, 0.42, 0.68, 1],
+          ease,
+        }}
+      >
+        <path d={EGG_RIGHT} fill={shell} stroke={shellDeep} strokeWidth="0.65" />
+        <ellipse
+          cx="1.4"
+          cy="1.8"
+          rx="0.55"
+          ry="0.75"
+          fill={shellDeep}
+          opacity={isPeak ? 0.32 : 0.28}
+        />
+        {isPeak && (
+          <ellipse
+            cx="1.2"
+            cy="-0.8"
+            rx="1.4"
+            ry="2.2"
+            fill={shellSoft}
+            opacity="0.3"
+          />
+        )}
+      </motion.g>
+
+      {/* Tiny crack flash before the split */}
+      <motion.path
+        d="M0 -5.5 L-1.2 -1.5 L0.8 1.2 L-0.4 4.5"
+        fill="none"
+        stroke={isPeak ? "#6E4E30" : shellDeep}
+        strokeWidth={isPeak ? 0.8 : 0.7}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        initial={{ pathLength: 0, opacity: 0 }}
+        animate={
+          inView
+            ? { pathLength: [0, 1, 1], opacity: [0, 0.6, 0] }
+            : { pathLength: 0, opacity: 0 }
+        }
+        transition={{
+          delay: delay + 0.48,
+          duration: 0.55,
+          times: [0, 0.55, 1],
+          ease,
+        }}
+      />
+    </g>
+  );
+}
+
 /** Scroll-drawn weekly ribbon — sage mist, peak glow, soft day markers. */
 function WeeklyAreaChart({
   data,
@@ -54,11 +265,13 @@ function WeeklyAreaChart({
   const glowId = useId();
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, amount: 0.4, margin: "0px 0px -40px 0px" });
+  const isMobile = useIsMobileViewport();
+  const eggScale = isMobile ? 1.4 : 1;
 
   const width = 360;
-  const height = 188;
+  const height = isMobile ? 236 : 224;
   const padX = 22;
-  const padTop = 28;
+  const padTop = isMobile ? 60 : 52;
   const padBottom = 36;
   const max = Math.max(...data.map((d) => d.visits), 1);
   const baseline = height - padBottom;
@@ -70,10 +283,10 @@ function WeeklyAreaChart({
     return data.map((d, i) => {
       const x =
         padX + (data.length === 1 ? innerW / 2 : (i / (data.length - 1)) * innerW);
-      const y = padTop + innerH - (d.visits / max) * innerH * 0.88;
+      const y = padTop + innerH - (d.visits / max) * innerH * 0.78;
       return { ...d, x, y, isPeak: d.visits === peakVisits && d.visits > 0 };
     });
-  }, [data, max, peakVisits]);
+  }, [data, max, peakVisits, height, padTop, padBottom]);
 
   const linePath = useMemo(() => smoothCurve(points), [points]);
   const areaPath = `${linePath} L ${points[points.length - 1].x.toFixed(1)} ${baseline} L ${points[0].x.toFixed(1)} ${baseline} Z`;
@@ -167,62 +380,53 @@ function WeeklyAreaChart({
           transition={{ duration: 1.35, ease }}
         />
 
-        {points.map((p, i) => (
-          <g key={p.day}>
-            <motion.circle
-              cx={p.x}
-              cy={p.y}
-              fill={p.isPeak ? "#6F8F7A" : "#F7FBFC"}
-              stroke={p.isPeak ? "#EAF3F0" : "#8FA896"}
-              strokeWidth={p.isPeak ? 2.5 : 1.75}
-              initial={{ r: 0, opacity: 0 }}
-              animate={
-                inView
-                  ? { r: p.isPeak ? 6.5 : 4, opacity: 1 }
-                  : { r: 0, opacity: 0 }
-              }
-              transition={{
-                delay: 0.85 + i * 0.07,
-                duration: 0.45,
-                ease,
-              }}
-            />
-            {p.isPeak && (
-              <motion.text
-                x={p.x}
-                textAnchor="middle"
-                fill="#4F545A"
-                initial={{ opacity: 0, y: p.y - 4 }}
+        {points.map((p, i) => {
+          const hatchDelay = 1.15 + i * 0.2;
+          return (
+            <g key={p.day}>
+              <motion.circle
+                cx={p.x}
+                cy={p.y}
+                fill={p.isPeak ? "#6F8F7A" : "#F7FBFC"}
+                stroke={p.isPeak ? "#EAF3F0" : "#8FA896"}
+                strokeWidth={p.isPeak ? 2.5 : 1.75}
+                initial={{ r: 0, opacity: 0 }}
                 animate={
                   inView
-                    ? { opacity: 1, y: p.y - 14 }
-                    : { opacity: 0, y: p.y - 4 }
+                    ? { r: p.isPeak ? 6.5 : 4, opacity: 1 }
+                    : { r: 0, opacity: 0 }
                 }
-                transition={{ delay: 1.15, duration: 0.45, ease }}
+                transition={{
+                  delay: 0.85 + i * 0.07,
+                  duration: 0.45,
+                  ease,
+                }}
+              />
+              <HatchCount
+                x={p.x}
+                y={p.y}
+                value={p.visits}
+                isPeak={p.isPeak}
+                delay={hatchDelay}
+                inView={inView}
+                scale={eggScale}
+              />
+              <text
+                x={p.x}
+                y={height - 10}
+                textAnchor="middle"
+                fill={p.isPeak ? "#4F545A" : "#8A8F94"}
                 style={{
                   fontSize: 11,
-                  fontFamily: "var(--font-heading)",
-                  fontWeight: 600,
+                  fontFamily: "var(--font-body)",
+                  fontWeight: p.isPeak ? 600 : 400,
                 }}
               >
-                {p.visits}
-              </motion.text>
-            )}
-            <text
-              x={p.x}
-              y={height - 10}
-              textAnchor="middle"
-              fill={p.isPeak ? "#4F545A" : "#8A8F94"}
-              style={{
-                fontSize: 11,
-                fontFamily: "var(--font-body)",
-                fontWeight: p.isPeak ? 600 : 400,
-              }}
-            >
-              {p.day}
-            </text>
-          </g>
-        ))}
+                {p.day}
+              </text>
+            </g>
+          );
+        })}
       </svg>
     </div>
   );
@@ -406,7 +610,7 @@ function WeeklyCard() {
       </div>
 
       {weekly.isLoading || !weekly.data ? (
-        <ChartSkeleton className="h-[188px]" />
+        <ChartSkeleton className="h-[236px] lg:h-[224px]" />
       ) : (
         <WeeklyAreaChart data={weekly.data} />
       )}

@@ -225,6 +225,37 @@ h4,
     inset 0 2px 6px rgba(30, 20, 10, 0.18);
 }
 
+/* Fullscreen enlarge — thin wood rail, no grey halo around the video */
+.wood-frame.wood-frame-expanded {
+  border-radius: 0;
+}
+
+.wood-frame.wood-frame-expanded::before {
+  border-radius: 0;
+}
+
+.wood-frame.wood-frame-expanded::after {
+  inset: 5px;
+  border-radius: 8px;
+}
+
+.wood-frame.wood-frame-expanded .wood-frame-inner {
+  border-radius: 6px;
+  background: #0a0f14;
+  box-shadow: none;
+}
+
+@media (min-width: 640px) {
+  .wood-frame.wood-frame-expanded::after {
+    inset: 6px;
+    border-radius: 10px;
+  }
+
+  .wood-frame.wood-frame-expanded .wood-frame-inner {
+    border-radius: 8px;
+  }
+}
+
 .wood-frame-sm {
   padding: 10px;
   border-radius: 16px;

@@ -204,17 +204,14 @@ export default function LiveCameraPage() {
               />
             ) : (
               <div className="wood-frame">
-                <div className="wood-frame-inner relative flex aspect-[3/4] flex-col items-center justify-center gap-4 bg-[#EEF6FB] px-6 text-center lg:aspect-video">
+                <div className="wood-frame-inner relative flex aspect-[3/4] flex-col items-center justify-center gap-5 bg-[#EEF6FB] px-6 text-center lg:aspect-video">
                   <LoadingFeather
                     label={
                       bridgePhase === "unconfigured"
                         ? "Camera bridge is offline"
-                        : "Waking camera…"
+                        : waitingCopy
                     }
                   />
-                  <p className="max-w-sm text-sm leading-relaxed text-[#8A8F94]">
-                    {waitingCopy}
-                  </p>
                   <button
                     type="button"
                     onClick={() => void refreshBridge(true)}

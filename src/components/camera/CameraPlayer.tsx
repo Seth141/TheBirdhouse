@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import {
+  useCallback,
   useEffect,
   useState,
   type MutableRefObject,
@@ -72,6 +73,25 @@ export function CameraPlayer({
     };
   }, [captureRef, captureSnapshot]);
 
+  const closeExpanded = useCallback(async () => {
+    await frameControls.start({
+      scale: 0.97,
+      opacity: 0.9,
+      transition: { duration: 0.18, ease },
+    });
+    setExpanded(false);
+    void frameControls.set({ scale: 1, opacity: 1 });
+  }, [frameControls]);
+
+  const openExpanded = useCallback(() => {
+    setExpanded(true);
+    void frameControls.start({
+      scale: [0.96, 1],
+      opacity: [0.9, 1],
+      transition: { duration: 0.42, ease },
+    });
+  }, [frameControls]);
+
   useEffect(() => {
     if (!expanded) return;
 
@@ -87,8 +107,7 @@ export function CameraPlayer({
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- closeExpanded is stable enough for this effect
-  }, [expanded]);
+  }, [expanded, closeExpanded]);
 
   // If the stream drops while enlarged, fold back into the page layout.
   useEffect(() => {
@@ -97,25 +116,6 @@ export function CameraPlayer({
       void frameControls.set({ scale: 1, opacity: 1 });
     }
   }, [status, expanded, frameControls]);
-
-  const openExpanded = () => {
-    setExpanded(true);
-    void frameControls.start({
-      scale: [0.94, 1],
-      opacity: [0.85, 1],
-      transition: { duration: 0.48, ease },
-    });
-  };
-
-  const closeExpanded = async () => {
-    await frameControls.start({
-      scale: 0.97,
-      opacity: 0.9,
-      transition: { duration: 0.18, ease },
-    });
-    setExpanded(false);
-    void frameControls.set({ scale: 1, opacity: 1 });
-  };
 
   const frameAspect =
     variant === "card"
@@ -152,28 +152,58 @@ export function CameraPlayer({
       <motion.div
         className={cn(
           "wood-frame",
-          expanded
-            ? "fixed inset-1 z-[101] flex flex-col sm:inset-2 lg:inset-3 xl:inset-4"
-            : className
+          expanded && "wood-frame-expanded",
+          !expanded && className
         )}
         animate={frameControls}
         initial={false}
         style={
           expanded
             ? {
-                padding: "clamp(18px, 2.4vw, 34px)",
-                boxShadow:
-                  "0 32px 90px rgba(18, 14, 10, 0.48), 0 10px 28px rgba(80, 60, 40, 0.22)",
+                // Inline position beats `.wood-frame { position: relative }` so the
+                // expanded frame actually fills the viewport instead of collapsing.
+                position: "fixed",
+                top: 0,
+                right: 0,
+                bottom: 0,
+                left: 0,
+                zIndex: 101,
+                display: "flex",
+                flexDirection: "column",
+                width: "100%",
+                height: "100%",
+                maxWidth: "none",
+                maxHeight: "none",
+                margin: 0,
+                borderRadius: 0,
+                boxShadow: "none",
+                // Safe area only — keep the wood thin so the feed is huge.
+                paddingTop: "max(8px, env(safe-area-inset-top))",
+                paddingRight: "max(8px, env(safe-area-inset-right))",
+                paddingBottom: "max(8px, env(safe-area-inset-bottom))",
+                paddingLeft: "max(8px, env(safe-area-inset-left))",
               }
             : undefined
         }
       >
         <div
           className={cn(
-            "wood-frame-inner relative min-h-0 bg-[#DCE6EC]",
-            expanded ? "h-full w-full flex-1" : frameAspect,
+            "wood-frame-inner relative",
+            !expanded && "bg-[#DCE6EC]",
+            expanded ? "min-h-0 w-full flex-1 bg-[#0a0f14]" : frameAspect,
             canExpand && !expanded && "cursor-zoom-in"
           )}
+          style={
+            expanded
+              ? {
+                  // Explicit fill — flex-1 alone can still collapse when the
+                  // parent briefly has no definite height during the transition.
+                  height: "100%",
+                  minHeight: "100%",
+                  boxShadow: "none",
+                }
+              : undefined
+          }
           role={canExpand && !expanded ? "button" : undefined}
           tabIndex={canExpand && !expanded ? 0 : undefined}
           aria-label={
